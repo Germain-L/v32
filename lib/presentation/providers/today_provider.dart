@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/meal.dart';
+import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../../data/services/image_storage_service.dart';
 
 class TodayProvider extends ChangeNotifier {
   final MealRepository _repository;
+  final DayRatingRepository _ratingRepository;
   final _picker = ImagePicker();
 
   final Map<MealSlot, Meal?> _meals = {};
@@ -18,10 +20,12 @@ class TodayProvider extends ChangeNotifier {
   final Map<MealSlot, bool> _hasPendingDescriptionSave = {};
   final Map<MealSlot, bool> _isClearing = {};
   String? _error;
+  int? _dayRating;
 
-  TodayProvider(this._repository) {
+  TodayProvider(this._repository, this._ratingRepository) {
     _initializeSlots();
     loadTodayMeals();
+    loadDayRating();
   }
 
   void _initializeSlots() {
@@ -40,6 +44,7 @@ class TodayProvider extends ChangeNotifier {
   bool isSaving(MealSlot slot) => _isSaving[slot] ?? false;
   String getDescription(MealSlot slot) => _descriptions[slot] ?? '';
   String? get error => _error;
+  int? get dayRating => _dayRating;
 
   Future<void> loadTodayMeals() async {
     try {
@@ -53,6 +58,32 @@ class TodayProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _error = 'Failed to load meals: $e';
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadDayRating() async {
+    try {
+      _dayRating = await _ratingRepository.getRatingForDate(DateTime.now());
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to load day rating: $e';
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateDayRating(int score) async {
+    try {
+      if (score < 1 || score > 3) {
+        _error = 'Invalid day rating';
+        notifyListeners();
+        return;
+      }
+      _dayRating = score;
+      notifyListeners();
+      await _ratingRepository.saveRating(DateTime.now(), score);
+    } catch (e) {
+      _error = 'Failed to save day rating: $e';
       notifyListeners();
     }
   }

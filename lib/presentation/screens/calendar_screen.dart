@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
+import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../providers/calendar_provider.dart';
 
@@ -17,7 +18,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    _provider = CalendarProvider(MealRepository());
+    _provider = CalendarProvider(MealRepository(), DayRatingRepository());
     _provider.addListener(_onProviderChanged);
   }
 
@@ -144,14 +145,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
           final day = days[index];
           final isCurrentMonth = day.month == _provider.focusedMonth.month;
           final isSelected = _isSameDay(day, selected);
-          final hasMeals = _provider.hasMealsForDate(day);
+          final rating = _provider.ratingForDate(day);
           return _buildDayCell(
             theme,
             colorScheme,
             day,
             isCurrentMonth: isCurrentMonth,
             isSelected: isSelected,
-            hasMeals: hasMeals,
+            rating: rating,
           );
         },
       ),
@@ -164,21 +165,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
     DateTime day, {
     required bool isCurrentMonth,
     required bool isSelected,
-    required bool hasMeals,
+    required int? rating,
   }) {
     final baseColor = isSelected
         ? colorScheme.primary
         : isCurrentMonth
         ? colorScheme.onSurface
         : colorScheme.onSurfaceVariant;
-    final textColor = isSelected ? colorScheme.onPrimary : baseColor;
+    final ratingColor = _ratingColor(colorScheme, rating);
+    final textColor = isSelected
+        ? colorScheme.onPrimary
+        : rating != null
+        ? colorScheme.onSurface
+        : baseColor;
     final bgColor = isSelected
         ? colorScheme.primary
-        : hasMeals
-        ? colorScheme.primaryContainer
+        : rating != null
+        ? ratingColor.withValues(alpha: 0.28)
         : Colors.transparent;
     final borderColor = isSelected
         ? colorScheme.primary
+        : rating != null
+        ? ratingColor.withValues(alpha: 0.65)
         : colorScheme.outlineVariant.withValues(alpha: 0.4);
 
     return InkWell(
@@ -210,18 +218,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
             ),
-            if (hasMeals)
+            if (rating != null)
               Positioned(
-                right: 6,
-                bottom: 6,
+                left: 8,
+                right: 8,
+                bottom: 7,
                 child: Container(
-                  width: 6,
-                  height: 6,
+                  height: 4,
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? colorScheme.onPrimary
-                        : colorScheme.primary,
-                    shape: BoxShape.circle,
+                    color: ratingColor,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
               ),
@@ -526,6 +532,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
       MealSlot.lunch => Icons.lunch_dining_outlined,
       MealSlot.afternoonSnack => Icons.coffee_outlined,
       MealSlot.dinner => Icons.nights_stay_outlined,
+    };
+  }
+
+  Color _ratingColor(ColorScheme colorScheme, int? rating) {
+    if (rating == null) return Colors.transparent;
+    return switch (rating) {
+      1 => colorScheme.error,
+      2 => colorScheme.tertiary,
+      3 => colorScheme.primary,
+      _ => colorScheme.outline,
     };
   }
 }

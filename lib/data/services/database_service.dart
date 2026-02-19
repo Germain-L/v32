@@ -20,15 +20,21 @@ class DatabaseService {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, 'diet_database.db');
 
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   @visibleForTesting
   static Future<void> useInMemoryDatabaseForTesting() async {
     _database = await openDatabase(
       inMemoryDatabasePath,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -45,6 +51,32 @@ class DatabaseService {
 
     await db.execute('CREATE INDEX idx_date ON meals(date)');
     await db.execute('CREATE INDEX idx_slot ON meals(slot)');
+
+    await db.execute('''
+      CREATE TABLE day_ratings(
+        date INTEGER PRIMARY KEY,
+        score INTEGER NOT NULL
+      )
+    ''');
+    await db.execute('CREATE INDEX idx_day_ratings_date ON day_ratings(date)');
+  }
+
+  static Future<void> _onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE day_ratings(
+          date INTEGER PRIMARY KEY,
+          score INTEGER NOT NULL
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX idx_day_ratings_date ON day_ratings(date)',
+      );
+    }
   }
 
   static Future<void> notifyChange() async {

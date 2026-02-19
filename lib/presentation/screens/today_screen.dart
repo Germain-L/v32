@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../data/models/meal.dart';
+import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../providers/today_provider.dart';
 import '../widgets/meal_slot.dart';
@@ -29,7 +30,7 @@ class _TodayScreenState extends State<TodayScreen>
       _provider = widget.provider!;
       _ownsProvider = false;
     } else {
-      _provider = TodayProvider(MealRepository());
+      _provider = TodayProvider(MealRepository(), DayRatingRepository());
       _ownsProvider = true;
     }
     for (final slot in MealSlot.values) {
@@ -96,9 +97,12 @@ class _TodayScreenState extends State<TodayScreen>
 
           return ListView.builder(
             padding: const EdgeInsets.only(top: 8, bottom: 20),
-            itemCount: MealSlot.values.length,
+            itemCount: MealSlot.values.length + 1,
             itemBuilder: (context, index) {
-              final slot = MealSlot.values[index];
+              if (index == 0) {
+                return _buildStaggeredItem(_buildDayRating(theme), index);
+              }
+              final slot = MealSlot.values[index - 1];
               return _buildStaggeredItem(
                 MealSlotWidget(
                   slot: slot,
@@ -123,6 +127,135 @@ class _TodayScreenState extends State<TodayScreen>
         },
       ),
     );
+  }
+
+  Widget _buildDayRating(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final rating = _provider.dayRating;
+    final options = [
+      (value: 1, label: 'Bad', icon: Icons.sentiment_very_dissatisfied),
+      (value: 2, label: 'Okay', icon: Icons.sentiment_neutral),
+      (value: 3, label: 'Great', icon: Icons.sentiment_very_satisfied),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 18, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'How was your day?',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  rating == null ? 'Not set' : 'Logged',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tap the mood that matches today overall.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: options.map((option) {
+                final selected = rating == option.value;
+                final optionColor = _ratingColor(colorScheme, option.value);
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => _provider.updateDayRating(option.value),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? optionColor.withValues(alpha: 0.18)
+                                : colorScheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: selected
+                                  ? optionColor
+                                  : colorScheme.outlineVariant.withValues(
+                                      alpha: 0.6,
+                                    ),
+                              width: selected ? 1.4 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                option.icon,
+                                size: 22,
+                                color: selected
+                                    ? optionColor
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                option.label,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: selected
+                                      ? optionColor
+                                      : colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _ratingColor(ColorScheme colorScheme, int rating) {
+    return switch (rating) {
+      1 => colorScheme.error,
+      2 => colorScheme.tertiary,
+      3 => colorScheme.primary,
+      _ => colorScheme.outline,
+    };
   }
 
   Widget _buildStaggeredItem(Widget child, int index) {

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:diet/data/models/meal.dart';
 import 'package:diet/presentation/providers/today_provider.dart';
+import '../fakes/fake_day_rating_repository.dart';
 import '../fakes/fake_meal_repository.dart';
 
 void main() {
@@ -13,7 +14,7 @@ void main() {
       ],
     );
 
-    final provider = TodayProvider(repo);
+    final provider = TodayProvider(repo, FakeDayRatingRepository());
     await provider.loadTodayMeals();
 
     expect(provider.getMeal(MealSlot.breakfast)?.description, 'Eggs');
@@ -23,7 +24,7 @@ void main() {
 
   test('updateDescription creates new meal when none exists', () async {
     final repo = FakeMealRepository();
-    final provider = TodayProvider(repo);
+    final provider = TodayProvider(repo, FakeDayRatingRepository());
 
     provider.updateDescription(MealSlot.dinner, 'Pasta');
     await provider.saveDescriptionNow(MealSlot.dinner);
@@ -35,7 +36,7 @@ void main() {
 
   test('updateDescription does not create meal for empty text', () async {
     final repo = FakeMealRepository();
-    final provider = TodayProvider(repo);
+    final provider = TodayProvider(repo, FakeDayRatingRepository());
 
     provider.updateDescription(MealSlot.dinner, '');
     await provider.saveDescriptionNow(MealSlot.dinner);
@@ -50,7 +51,7 @@ void main() {
         Meal(id: 9, slot: MealSlot.lunch, date: now, description: 'Soup'),
       ],
     );
-    final provider = TodayProvider(repo);
+    final provider = TodayProvider(repo, FakeDayRatingRepository());
     await provider.loadTodayMeals();
 
     provider.updateDescription(MealSlot.lunch, 'Soup and salad');
@@ -61,7 +62,7 @@ void main() {
 
   test('saveDescriptionNow handles repository error', () async {
     final repo = FakeMealRepository(throwOnSaveMeal: true);
-    final provider = TodayProvider(repo);
+    final provider = TodayProvider(repo, FakeDayRatingRepository());
 
     provider.updateDescription(MealSlot.dinner, 'Pasta');
     await expectLater(
@@ -77,7 +78,7 @@ void main() {
         Meal(id: 10, slot: MealSlot.breakfast, date: now, description: 'Toast'),
       ],
     );
-    final provider = TodayProvider(repo);
+    final provider = TodayProvider(repo, FakeDayRatingRepository());
     await provider.loadTodayMeals();
 
     await provider.clearMeal(MealSlot.breakfast);
@@ -102,7 +103,7 @@ void main() {
         ),
       ],
     );
-    final provider = TodayProvider(repo);
+    final provider = TodayProvider(repo, FakeDayRatingRepository());
     await provider.loadTodayMeals();
 
     await provider.deletePhoto(MealSlot.dinner);
@@ -112,7 +113,7 @@ void main() {
 
   test('clearMeal prevents pending save from persisting', () async {
     final repo = FakeMealRepository();
-    final provider = TodayProvider(repo);
+    final provider = TodayProvider(repo, FakeDayRatingRepository());
 
     provider.updateDescription(MealSlot.breakfast, 'Coffee');
     await provider.clearMeal(MealSlot.breakfast);

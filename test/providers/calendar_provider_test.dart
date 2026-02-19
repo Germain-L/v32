@@ -1,12 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:diet/data/models/meal.dart';
 import 'package:diet/presentation/providers/calendar_provider.dart';
+import '../fakes/fake_day_rating_repository.dart';
 import '../fakes/fake_meal_repository.dart';
 
 void main() {
   test('selectDate normalizes and updates focused month', () async {
     final repo = FakeMealRepository();
-    final provider = CalendarProvider(repo);
+    final provider = CalendarProvider(repo, FakeDayRatingRepository());
 
     final target = DateTime(2024, 4, 15, 18, 30);
     provider.selectDate(target);
@@ -17,7 +18,7 @@ void main() {
 
   test('selectDate no-ops for same day', () async {
     final repo = FakeMealRepository();
-    final provider = CalendarProvider(repo);
+    final provider = CalendarProvider(repo, FakeDayRatingRepository());
     final selected = provider.selectedDate;
 
     provider.selectDate(selected);
@@ -27,7 +28,7 @@ void main() {
 
   test('goToPreviousMonth and goToNextMonth update selection', () async {
     final repo = FakeMealRepository();
-    final provider = CalendarProvider(repo);
+    final provider = CalendarProvider(repo, FakeDayRatingRepository());
 
     final initial = provider.focusedMonth;
     provider.goToNextMonth();
@@ -38,7 +39,7 @@ void main() {
 
   test('refresh reloads month and day', () async {
     final repo = FakeMealRepository();
-    final provider = CalendarProvider(repo);
+    final provider = CalendarProvider(repo, FakeDayRatingRepository());
 
     await provider.refresh();
 
@@ -51,7 +52,7 @@ void main() {
     final repo = FakeMealRepository(
       seedMeals: [Meal(id: 1, slot: MealSlot.lunch, date: base)],
     );
-    final provider = CalendarProvider(repo);
+    final provider = CalendarProvider(repo, FakeDayRatingRepository());
     provider.selectDate(base);
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -61,7 +62,7 @@ void main() {
 
   test('loadMonth handles repository error', () async {
     final repo = FakeMealRepository(throwOnGetMealsForMonth: true);
-    final provider = CalendarProvider(repo);
+    final provider = CalendarProvider(repo, FakeDayRatingRepository());
 
     await provider.refresh();
 
@@ -84,7 +85,7 @@ void main() {
         ),
       ],
     );
-    final provider = CalendarProvider(repo);
+    final provider = CalendarProvider(repo, FakeDayRatingRepository());
 
     await Future<void>.delayed(const Duration(milliseconds: 10));
     provider.selectDate(date);

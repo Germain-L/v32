@@ -1,9 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../../data/models/meal.dart';
+import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 
 class CalendarProvider extends ChangeNotifier {
-  CalendarProvider(this._repository) {
+  CalendarProvider(this._repository, this._ratingRepository) {
     final now = DateTime.now();
     _focusedMonth = DateTime(now.year, now.month, 1);
     _selectedDate = DateTime(now.year, now.month, now.day);
@@ -12,6 +13,7 @@ class CalendarProvider extends ChangeNotifier {
   }
 
   final MealRepository _repository;
+  final DayRatingRepository _ratingRepository;
 
   late DateTime _focusedMonth;
   late DateTime _selectedDate;
@@ -19,6 +21,7 @@ class CalendarProvider extends ChangeNotifier {
   bool _isLoadingDay = false;
   String? _error;
   final Map<String, bool> _monthHasMeals = {};
+  final Map<String, int> _monthRatings = {};
   List<Meal> _selectedMeals = [];
 
   DateTime get focusedMonth => _focusedMonth;
@@ -30,6 +33,10 @@ class CalendarProvider extends ChangeNotifier {
 
   bool hasMealsForDate(DateTime date) {
     return _monthHasMeals[_dateKey(date)] ?? false;
+  }
+
+  int? ratingForDate(DateTime date) {
+    return _monthRatings[_dateKey(date)];
   }
 
   void selectDate(DateTime date) {
@@ -73,13 +80,23 @@ class CalendarProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final meals = await _repository.getMealsForMonth(
+      final mealsFuture = _repository.getMealsForMonth(
         _focusedMonth.year,
         _focusedMonth.month,
       );
+      final ratingsFuture = _ratingRepository.getRatingsForMonth(
+        _focusedMonth.year,
+        _focusedMonth.month,
+      );
+      final results = await Future.wait([mealsFuture, ratingsFuture]);
+      final meals = results[0] as List<Meal>;
+      final ratings = results[1] as Map<String, int>;
       _monthHasMeals
         ..clear()
         ..addAll(_buildMonthMealMap(meals));
+      _monthRatings
+        ..clear()
+        ..addAll(ratings);
     } catch (e) {
       _error = 'Failed to load calendar: $e';
     } finally {
