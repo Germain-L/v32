@@ -5,25 +5,31 @@ import '../../data/models/meal.dart';
 class MealSlotWidget extends StatelessWidget {
   final MealSlot slot;
   final Meal? meal;
-  final String description;
   final bool isLoading;
   final VoidCallback? onCapturePhoto;
   final VoidCallback? onPickImage;
   final VoidCallback? onDeletePhoto;
   final VoidCallback? onClearMeal;
   final ValueChanged<String>? onDescriptionChanged;
+  final VoidCallback? onDescriptionEditingComplete;
+  final TextEditingController? descriptionController;
+  final FocusNode? descriptionFocusNode;
+  final bool isSavingDescription;
 
   const MealSlotWidget({
     super.key,
     required this.slot,
     this.meal,
-    this.description = '',
     this.isLoading = false,
     this.onCapturePhoto,
     this.onPickImage,
     this.onDeletePhoto,
     this.onClearMeal,
     this.onDescriptionChanged,
+    this.onDescriptionEditingComplete,
+    this.descriptionController,
+    this.descriptionFocusNode,
+    this.isSavingDescription = false,
   });
 
   @override
@@ -31,7 +37,7 @@ class MealSlotWidget extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -257,26 +263,52 @@ class MealSlotWidget extends StatelessWidget {
   Widget _buildDescriptionInput(BuildContext context) {
     final theme = Theme.of(context);
 
-    return TextField(
-      controller: TextEditingController(text: description)
-        ..selection = TextSelection.collapsed(offset: description.length),
-      onChanged: onDescriptionChanged,
-      maxLines: null,
-      minLines: 2,
-      textCapitalization: TextCapitalization.sentences,
-      decoration: InputDecoration(
-        hintText: 'Add a description (optional)...',
-        hintStyle: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
+    return Stack(
+      alignment: Alignment.centerRight,
+      children: [
+        TextFormField(
+          controller: descriptionController,
+          focusNode: descriptionFocusNode,
+          onChanged: onDescriptionChanged,
+          onEditingComplete: onDescriptionEditingComplete,
+          onFieldSubmitted: (_) => onDescriptionEditingComplete?.call(),
+          onTapOutside: (_) => onDescriptionEditingComplete?.call(),
+          maxLines: null,
+          minLines: 2,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: 'Add a description (optional)...',
+            hintStyle: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            filled: true,
+            fillColor: theme.colorScheme.surfaceContainerHighest,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(12, 12, 40, 12),
+          ),
         ),
-        filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHighest,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: isSavingDescription
+              ? Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
-        contentPadding: const EdgeInsets.all(12),
-      ),
+      ],
     );
   }
 

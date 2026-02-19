@@ -6,14 +6,20 @@ class MealsProvider extends ChangeNotifier {
   final MealRepository _repository;
 
   final List<Meal> _meals = [];
-  final int _pageSize = 20;
+  final int _pageSize;
+  final bool _autoLoad;
   DateTime? _lastMealDate;
+  int? _lastMealId;
   bool _isLoading = false;
   bool _hasMore = true;
   String? _error;
 
-  MealsProvider(this._repository) {
-    loadMoreMeals();
+  MealsProvider(this._repository, {int pageSize = 20, bool autoLoad = true})
+    : _pageSize = pageSize,
+      _autoLoad = autoLoad {
+    if (_autoLoad) {
+      loadMoreMeals();
+    }
   }
 
   List<Meal> get meals => List.unmodifiable(_meals);
@@ -30,30 +36,26 @@ class MealsProvider extends ChangeNotifier {
 
     try {
       final date = _lastMealDate ?? DateTime.now();
-      debugPrint('Loading meals before: $date');
-      final newMeals = await _repository.getMealsBefore(date, limit: _pageSize);
-      debugPrint(
-        'Loaded ${newMeals.length} meals: ${newMeals.map((m) => 'id=${m.id}, slot=${m.slot}').join(', ')}',
+      final newMeals = await _repository.getMealsBeforeCursor(
+        date,
+        id: _lastMealId,
+        limit: _pageSize,
       );
 
       if (newMeals.isEmpty) {
         _hasMore = false;
-        debugPrint('No more meals to load');
       } else {
         final existingIds = _meals.map((m) => m.id).toSet();
-        debugPrint('Existing meal IDs: $existingIds');
         final uniqueNewMeals = newMeals
             .where((m) => !existingIds.contains(m.id))
             .toList();
-        debugPrint('Unique new meals: ${uniqueNewMeals.length}');
 
         if (uniqueNewMeals.isEmpty) {
           _hasMore = false;
-          debugPrint('All meals were duplicates, stopping');
         } else {
           _meals.addAll(uniqueNewMeals);
           _lastMealDate = uniqueNewMeals.last.date;
-          debugPrint('Total meals in list: ${_meals.length}');
+          _lastMealId = uniqueNewMeals.last.id;
 
           if (uniqueNewMeals.length < _pageSize) {
             _hasMore = false;
@@ -62,7 +64,6 @@ class MealsProvider extends ChangeNotifier {
       }
     } catch (e) {
       _error = 'Failed to load meals: $e';
-      debugPrint('Error loading meals: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -72,6 +73,7 @@ class MealsProvider extends ChangeNotifier {
   Future<void> refresh() async {
     _meals.clear();
     _lastMealDate = null;
+    _lastMealId = null;
     _hasMore = true;
     _error = null;
     notifyListeners();

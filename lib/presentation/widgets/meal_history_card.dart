@@ -14,8 +14,8 @@ class MealHistoryCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      elevation: 0,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
@@ -67,7 +67,9 @@ class MealHistoryCard extends StatelessWidget {
                       Text(
                         'No description',
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.6,
+                          ),
                           fontStyle: FontStyle.italic,
                         ),
                       ),

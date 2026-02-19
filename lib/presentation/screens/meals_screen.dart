@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../../data/models/meal.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../providers/meals_provider.dart';
@@ -12,9 +13,11 @@ class MealsScreen extends StatefulWidget {
   State<MealsScreen> createState() => _MealsScreenState();
 }
 
-class _MealsScreenState extends State<MealsScreen> {
+class _MealsScreenState extends State<MealsScreen>
+    with SingleTickerProviderStateMixin {
   late final MealsProvider _provider;
   final ScrollController _scrollController = ScrollController();
+  late final AnimationController _listController;
 
   @override
   void initState() {
@@ -22,6 +25,10 @@ class _MealsScreenState extends State<MealsScreen> {
     _provider = MealsProvider(MealRepository());
     _provider.addListener(_onProviderChanged);
     _scrollController.addListener(_onScroll);
+    _listController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..forward();
   }
 
   void _onProviderChanged() {
@@ -41,6 +48,7 @@ class _MealsScreenState extends State<MealsScreen> {
   void dispose() {
     _provider.removeListener(_onProviderChanged);
     _scrollController.dispose();
+    _listController.dispose();
     super.dispose();
   }
 
@@ -175,7 +183,10 @@ class _MealsScreenState extends State<MealsScreen> {
           }
 
           final group = groupedMeals[index];
-          return _buildDateGroup(context, group, theme, colorScheme);
+          return _buildStaggeredItem(
+            _buildDateGroup(context, group, theme, colorScheme),
+            index,
+          );
         },
       ),
     );
@@ -191,7 +202,7 @@ class _MealsScreenState extends State<MealsScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
           child: Text(
             group.dateLabel,
             style: theme.textTheme.titleSmall?.copyWith(
@@ -204,6 +215,26 @@ class _MealsScreenState extends State<MealsScreen> {
           (meal) => MealHistoryCard(meal: meal, onTap: () => _onMealTap(meal)),
         ),
       ],
+    );
+  }
+
+  Widget _buildStaggeredItem(Widget child, int index) {
+    final start = (index * 0.08);
+    final end = math.min(1.0, start + 0.5);
+    final animation = CurvedAnimation(
+      parent: _listController,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    );
+
+    return FadeTransition(
+      opacity: animation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.04),
+          end: Offset.zero,
+        ).animate(animation),
+        child: child,
+      ),
     );
   }
 

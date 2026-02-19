@@ -52,19 +52,21 @@ class Meal {
     );
   }
 
+  static const _unset = Object();
+
   Meal copyWith({
     int? id,
     MealSlot? slot,
     DateTime? date,
     String? description,
-    String? imagePath,
+    Object? imagePath = _unset,
   }) {
     return Meal(
       id: id ?? this.id,
       slot: slot ?? this.slot,
       date: date ?? this.date,
       description: description ?? this.description,
-      imagePath: imagePath ?? this.imagePath,
+      imagePath: imagePath == _unset ? this.imagePath : imagePath as String?,
     );
   }
 }

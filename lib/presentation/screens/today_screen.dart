@@ -1,37 +1,60 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../../data/models/meal.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../providers/today_provider.dart';
 import '../widgets/meal_slot.dart';
 
 class TodayScreen extends StatefulWidget {
-  const TodayScreen({super.key});
+  final TodayProvider? provider;
+
+  const TodayScreen({super.key, this.provider});
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
 }
 
-class _TodayScreenState extends State<TodayScreen> {
+class _TodayScreenState extends State<TodayScreen>
+    with SingleTickerProviderStateMixin {
   late final TodayProvider _provider;
+  late final bool _ownsProvider;
+  late final AnimationController _listController;
+  final Map<MealSlot, TextEditingController> _controllers = {};
+  final Map<MealSlot, FocusNode> _focusNodes = {};
 
   @override
   void initState() {
     super.initState();
-    _provider = TodayProvider(MealRepository());
-    _provider.addListener(_onProviderChanged);
+    if (widget.provider != null) {
+      _provider = widget.provider!;
+      _ownsProvider = false;
+    } else {
+      _provider = TodayProvider(MealRepository());
+      _ownsProvider = true;
+    }
+    for (final slot in MealSlot.values) {
+      _controllers[slot] = TextEditingController();
+      _focusNodes[slot] = FocusNode();
+    }
+    _listController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+    )..forward();
   }
 
   @override
   void dispose() {
-    _provider.removeListener(_onProviderChanged);
-    _provider.dispose();
-    super.dispose();
-  }
-
-  void _onProviderChanged() {
-    if (mounted) {
-      setState(() {});
+    if (_ownsProvider) {
+      _provider.dispose();
     }
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    for (final node in _focusNodes.values) {
+      node.dispose();
+    }
+    _listController.dispose();
+    super.dispose();
   }
 
   @override
@@ -56,30 +79,68 @@ class _TodayScreenState extends State<TodayScreen> {
       body: ListenableBuilder(
         listenable: _provider,
         builder: (context, child) {
+          for (final slot in MealSlot.values) {
+            final controller = _controllers[slot];
+            final providerText = _provider.getDescription(slot);
+            if (controller != null && controller.text != providerText) {
+              controller.value = controller.value.copyWith(
+                text: providerText,
+                selection: TextSelection.collapsed(offset: providerText.length),
+                composing: TextRange.empty,
+              );
+            }
+          }
           if (_provider.error != null) {
             return _buildErrorWidget();
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 24),
+            padding: const EdgeInsets.only(top: 8, bottom: 20),
             itemCount: MealSlot.values.length,
             itemBuilder: (context, index) {
               final slot = MealSlot.values[index];
-              return MealSlotWidget(
-                slot: slot,
-                meal: _provider.getMeal(slot),
-                description: _provider.getDescription(slot),
-                isLoading: _provider.isLoading(slot),
-                onCapturePhoto: () => _provider.capturePhoto(slot),
-                onPickImage: () => _provider.pickImage(slot),
-                onDeletePhoto: () => _provider.deletePhoto(slot),
-                onClearMeal: () => _showClearConfirmation(slot),
-                onDescriptionChanged: (value) =>
-                    _provider.updateDescription(slot, value),
+              return _buildStaggeredItem(
+                MealSlotWidget(
+                  slot: slot,
+                  meal: _provider.getMeal(slot),
+                  isLoading: _provider.isLoading(slot),
+                  onCapturePhoto: () => _provider.capturePhoto(slot),
+                  onPickImage: () => _provider.pickImage(slot),
+                  onDeletePhoto: () => _provider.deletePhoto(slot),
+                  onClearMeal: () => _showClearConfirmation(slot),
+                  descriptionController: _controllers[slot],
+                  descriptionFocusNode: _focusNodes[slot],
+                  onDescriptionChanged: (value) =>
+                      _provider.updateDescription(slot, value),
+                  onDescriptionEditingComplete: () =>
+                      _provider.saveDescriptionNow(slot),
+                  isSavingDescription: _provider.isSaving(slot),
+                ),
+                index,
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildStaggeredItem(Widget child, int index) {
+    final start = (index * 0.12);
+    final end = math.min(1.0, start + 0.6);
+    final animation = CurvedAnimation(
+      parent: _listController,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    );
+
+    return FadeTransition(
+      opacity: animation,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.04),
+          end: Offset.zero,
+        ).animate(animation),
+        child: child,
       ),
     );
   }

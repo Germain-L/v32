@@ -15,6 +15,8 @@ class TodayProvider extends ChangeNotifier {
   final Map<MealSlot, bool> _isSaving = {};
   final Map<MealSlot, String?> _descriptions = {};
   final Map<MealSlot, Timer?> _debounceTimers = {};
+  final Map<MealSlot, bool> _hasPendingDescriptionSave = {};
+  final Map<MealSlot, bool> _isClearing = {};
   String? _error;
 
   TodayProvider(this._repository) {
@@ -28,11 +30,14 @@ class TodayProvider extends ChangeNotifier {
       _isSaving[slot] = false;
       _descriptions[slot] = '';
       _debounceTimers[slot] = null;
+      _hasPendingDescriptionSave[slot] = false;
+      _isClearing[slot] = false;
     }
   }
 
   Meal? getMeal(MealSlot slot) => _meals[slot];
   bool isLoading(MealSlot slot) => _isLoading[slot] ?? false;
+  bool isSaving(MealSlot slot) => _isSaving[slot] ?? false;
   String getDescription(MealSlot slot) => _descriptions[slot] ?? '';
   String? get error => _error;
 
@@ -42,9 +47,7 @@ class TodayProvider extends ChangeNotifier {
 
       for (final slot in MealSlot.values) {
         _meals[slot] = meals.where((m) => m.slot == slot).firstOrDefault;
-        if (_meals[slot] != null) {
-          _descriptions[slot] = _meals[slot]!.description ?? '';
-        }
+        _descriptions[slot] = _meals[slot]?.description ?? '';
       }
 
       notifyListeners();
@@ -127,8 +130,10 @@ class TodayProvider extends ChangeNotifier {
       await ImageStorageService.deleteImage(existingMeal.imagePath);
     }
 
+    final currentMeal = _meals[slot] ?? existingMeal;
+
     final meal = Meal(
-      id: existingMeal?.id,
+      id: currentMeal?.id,
       slot: slot,
       date: DateTime.now(),
       description: _descriptions[slot],
@@ -136,15 +141,25 @@ class TodayProvider extends ChangeNotifier {
     );
 
     final savedMeal = await _repository.saveMeal(meal);
+    if (_isClearing[slot] == true) {
+      if (savedMeal.id != null) {
+        await _repository.deleteMeal(savedMeal.id!);
+      }
+      return;
+    }
     _meals[slot] = savedMeal;
+    if (_hasPendingDescriptionSave[slot] == true) {
+      await _saveDescription(slot);
+    }
     notifyListeners();
   }
 
   Future<void> updateDescription(MealSlot slot, String description) async {
     _descriptions[slot] = description;
+    _hasPendingDescriptionSave[slot] = true;
 
     _debounceTimers[slot]?.cancel();
-    _debounceTimers[slot] = Timer(const Duration(milliseconds: 400), () {
+    _debounceTimers[slot] = Timer(const Duration(milliseconds: 250), () {
       _saveDescription(slot);
     });
 
@@ -154,22 +169,57 @@ class TodayProvider extends ChangeNotifier {
   Future<void> _saveDescription(MealSlot slot) async {
     final description = _descriptions[slot] ?? '';
 
-    // Prevent concurrent saves for the same slot
-    if (_isSaving[slot] == true) return;
+    if (_hasPendingDescriptionSave[slot] != true) {
+      return;
+    }
 
-    final existingMeal = _meals[slot];
-    if (existingMeal != null && existingMeal.id != null) {
-      final updatedMeal = existingMeal.copyWith(description: description);
-      final savedMeal = await _repository.saveMeal(updatedMeal);
-      _meals[slot] = savedMeal;
-    } else if (description.isNotEmpty) {
-      _isSaving[slot] = true;
-      try {
+    if (_isLoading[slot] == true) {
+      return;
+    }
+
+    if (_isClearing[slot] == true) {
+      _hasPendingDescriptionSave[slot] = false;
+      return;
+    }
+
+    // Prevent concurrent saves for the same slot
+    if (_isSaving[slot] == true) {
+      _hasPendingDescriptionSave[slot] = true;
+      return;
+    }
+
+    _isSaving[slot] = true;
+
+    var shouldRerun = false;
+
+    try {
+      _hasPendingDescriptionSave[slot] = false;
+      final existingMeal = _meals[slot];
+      if (existingMeal == null && description.trim().isEmpty) {
+        return;
+      }
+      if (existingMeal != null && existingMeal.id != null) {
+        final updatedMeal = existingMeal.copyWith(description: description);
+        final savedMeal = await _repository.saveMeal(updatedMeal);
+        if (_isClearing[slot] == true) {
+          if (savedMeal.id != null) {
+            await _repository.deleteMeal(savedMeal.id!);
+          }
+          return;
+        }
+        _meals[slot] = savedMeal;
+      } else if (description.isNotEmpty) {
         // Check if a meal was created while we were waiting
         if (_meals[slot]?.id != null) {
           // Meal exists now, just update it
           final updatedMeal = _meals[slot]!.copyWith(description: description);
           final savedMeal = await _repository.saveMeal(updatedMeal);
+          if (_isClearing[slot] == true) {
+            if (savedMeal.id != null) {
+              await _repository.deleteMeal(savedMeal.id!);
+            }
+            return;
+          }
           _meals[slot] = savedMeal;
         } else {
           // Create new meal
@@ -179,14 +229,41 @@ class TodayProvider extends ChangeNotifier {
             description: description,
           );
           final savedMeal = await _repository.saveMeal(meal);
+          if (_isClearing[slot] == true) {
+            if (savedMeal.id != null) {
+              await _repository.deleteMeal(savedMeal.id!);
+            }
+            return;
+          }
           _meals[slot] = savedMeal;
         }
-      } finally {
-        _isSaving[slot] = false;
       }
+    } finally {
+      shouldRerun = _hasPendingDescriptionSave[slot] == true;
+      _isSaving[slot] = false;
+    }
+
+    if (shouldRerun) {
+      await _saveDescription(slot);
+      return;
     }
 
     notifyListeners();
+  }
+
+  Future<void> saveDescriptionNow(MealSlot slot) async {
+    _debounceTimers[slot]?.cancel();
+    _hasPendingDescriptionSave[slot] = true;
+    await _saveDescription(slot);
+  }
+
+  Future<void> flushPendingSaves() async {
+    for (final slot in MealSlot.values) {
+      _debounceTimers[slot]?.cancel();
+      if (_hasPendingDescriptionSave[slot] == true) {
+        await _saveDescription(slot);
+      }
+    }
   }
 
   Future<void> deletePhoto(MealSlot slot) async {
@@ -203,24 +280,36 @@ class TodayProvider extends ChangeNotifier {
 
   Future<void> clearMeal(MealSlot slot) async {
     final meal = _meals[slot];
-    if (meal == null) return;
-
-    if (meal.imagePath != null) {
-      await ImageStorageService.deleteImage(meal.imagePath);
+    if (meal == null && _hasPendingDescriptionSave[slot] != true) {
+      return;
     }
 
-    if (meal.id != null) {
-      await _repository.deleteMeal(meal.id!);
-    }
-
-    _meals[slot] = null;
+    _isClearing[slot] = true;
+    _debounceTimers[slot]?.cancel();
+    _hasPendingDescriptionSave[slot] = false;
     _descriptions[slot] = '';
+    _meals[slot] = null;
     notifyListeners();
+
+    if (meal != null) {
+      if (meal.imagePath != null) {
+        await ImageStorageService.deleteImage(meal.imagePath);
+      }
+
+      if (meal.id != null) {
+        await _repository.deleteMeal(meal.id!);
+      }
+    }
+
+    _isClearing[slot] = false;
   }
 
   void _setLoading(MealSlot slot, bool value) {
     _isLoading[slot] = value;
     notifyListeners();
+    if (!value && _hasPendingDescriptionSave[slot] == true) {
+      _saveDescription(slot);
+    }
   }
 
   void clearError() {
@@ -230,6 +319,7 @@ class TodayProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    flushPendingSaves();
     for (final timer in _debounceTimers.values) {
       timer?.cancel();
     }

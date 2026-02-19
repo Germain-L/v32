@@ -62,16 +62,19 @@ class MealRepository {
 
   // Today's meals
   Stream<List<Meal>> watchTodayMeals() async* {
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    Future<List<Meal>> loadForToday() async {
+      final now = DateTime.now();
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+      return _getMealsForDateRange(startOfDay, endOfDay);
+    }
 
     // Emit initial data
-    yield await _getMealsForDateRange(startOfDay, endOfDay);
+    yield await loadForToday();
 
     // Watch for changes
     await for (final _ in DatabaseService.dbChanges) {
-      yield await _getMealsForDateRange(startOfDay, endOfDay);
+      yield await loadForToday();
     }
   }
 
@@ -102,7 +105,37 @@ class MealRepository {
       'meals',
       where: 'date < ?',
       whereArgs: [date.millisecondsSinceEpoch],
-      orderBy: 'date DESC',
+      orderBy: 'date DESC, id DESC',
+      limit: limit,
+    );
+
+    return maps.map((map) => Meal.fromMap(map)).toList();
+  }
+
+  Future<List<Meal>> getMealsBeforeCursor(
+    DateTime date, {
+    int? id,
+    int limit = 20,
+  }) async {
+    final db = await DatabaseService.database;
+    final dateMillis = date.millisecondsSinceEpoch;
+
+    if (id == null) {
+      final maps = await db.query(
+        'meals',
+        where: 'date < ?',
+        whereArgs: [dateMillis],
+        orderBy: 'date DESC, id DESC',
+        limit: limit,
+      );
+      return maps.map((map) => Meal.fromMap(map)).toList();
+    }
+
+    final maps = await db.query(
+      'meals',
+      where: 'date < ? OR (date = ? AND id < ?)',
+      whereArgs: [dateMillis, dateMillis, id],
+      orderBy: 'date DESC, id DESC',
       limit: limit,
     );
 

@@ -30,7 +30,9 @@ class ImageStorageService {
   }) async {
     try {
       final dir = await _directory;
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final randomBits = timestamp.remainder(1000000);
+      final fileName = '${timestamp}_$randomBits.jpg';
       final targetPath = path.join(dir.path, fileName);
 
       // Read and decode image

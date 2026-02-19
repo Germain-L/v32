@@ -1,11 +1,13 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
 class DatabaseService {
   static Database? _database;
-  static final _dbChangeController = StreamController<void>.broadcast();
+  static StreamController<void> _dbChangeController =
+      StreamController<void>.broadcast();
 
   static Stream<void> get dbChanges => _dbChangeController.stream;
 
@@ -19,6 +21,15 @@ class DatabaseService {
     final path = join(documentsDirectory.path, 'diet_database.db');
 
     return await openDatabase(path, version: 1, onCreate: _onCreate);
+  }
+
+  @visibleForTesting
+  static Future<void> useInMemoryDatabaseForTesting() async {
+    _database = await openDatabase(
+      inMemoryDatabasePath,
+      version: 1,
+      onCreate: _onCreate,
+    );
   }
 
   static Future<void> _onCreate(Database db, int version) async {
@@ -37,6 +48,7 @@ class DatabaseService {
   }
 
   static Future<void> notifyChange() async {
+    if (_dbChangeController.isClosed) return;
     _dbChangeController.add(null);
   }
 
@@ -46,5 +58,11 @@ class DatabaseService {
       _database = null;
     }
     await _dbChangeController.close();
+  }
+
+  @visibleForTesting
+  static Future<void> resetForTesting() async {
+    await close();
+    _dbChangeController = StreamController<void>.broadcast();
   }
 }

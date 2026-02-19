@@ -75,9 +75,9 @@ All existing functionality preserved with SQLite as the backing store.
 - [x] Connect calendar selection to a daily view summary.
 
 ### Phase 5: Optimization & Polish
-- [ ] Image compression to keep app size low.
-- [ ] Smooth transitions between tabs.
-- [ ] Final UI/UX pass for "premium" feel (shadows, typography).
+- [x] Image compression to keep app size low.
+- [x] Smooth transitions between tabs.
+- [x] Final UI/UX pass for "premium" feel (shadows, typography).
 
 ## 6. Development Workflow
 

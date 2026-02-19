@@ -72,12 +72,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildCalendarHeader(ThemeData theme, ColorScheme colorScheme) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
       child: Row(
         children: [
           IconButton(
             onPressed: _provider.goToPreviousMonth,
             icon: const Icon(Icons.chevron_left),
+            color: colorScheme.onSurfaceVariant,
           ),
           Expanded(
             child: Text(
@@ -92,6 +93,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           IconButton(
             onPressed: _provider.goToNextMonth,
             icon: const Icon(Icons.chevron_right),
+            color: colorScheme.onSurfaceVariant,
           ),
         ],
       ),
@@ -127,14 +129,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final selected = _provider.selectedDate;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 7,
-          crossAxisSpacing: 6,
-          mainAxisSpacing: 6,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
           childAspectRatio: 1.0,
         ),
         itemCount: days.length,
@@ -175,6 +177,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         : hasMeals
         ? colorScheme.primaryContainer
         : Colors.transparent;
+    final borderColor = isSelected
+        ? colorScheme.primary
+        : colorScheme.outlineVariant.withValues(alpha: 0.4);
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -183,9 +188,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-          ),
+          border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.18),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Stack(
           children: [
@@ -437,19 +449,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final firstDay = DateTime(month.year, month.month, 1);
     final lastDay = DateTime(month.year, month.month + 1, 0);
     final startOffset = firstDay.weekday - 1;
-    final totalDays = lastDay.day;
 
     final days = <DateTime>[];
     for (var i = 0; i < startOffset; i++) {
       days.add(firstDay.subtract(Duration(days: startOffset - i)));
     }
-    for (var day = 1; day <= totalDays; day++) {
+    for (var day = 1; day <= lastDay.day; day++) {
       days.add(DateTime(month.year, month.month, day));
     }
+    var trailing = 1;
     while (days.length % 7 != 0) {
-      days.add(
-        lastDay.add(Duration(days: days.length - totalDays - startOffset)),
-      );
+      days.add(lastDay.add(Duration(days: trailing)));
+      trailing++;
     }
     return days;
   }

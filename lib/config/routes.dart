@@ -13,8 +13,28 @@ final router = GoRouter(
   routes: [
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
-      builder: (context, state, child) {
-        return MainScaffold(child: child);
+      pageBuilder: (context, state, child) {
+        return CustomTransitionPage(
+          key: state.pageKey,
+          child: MainScaffold(child: child),
+          transitionDuration: const Duration(milliseconds: 260),
+          reverseTransitionDuration: const Duration(milliseconds: 220),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final fade = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            );
+            final slide = Tween<Offset>(
+              begin: const Offset(0.02, 0.02),
+              end: Offset.zero,
+            ).animate(fade);
+
+            return FadeTransition(
+              opacity: fade,
+              child: SlideTransition(position: slide, child: child),
+            );
+          },
+        );
       },
       routes: [
         GoRoute(
@@ -70,16 +90,9 @@ class MainScaffold extends StatelessWidget {
   }
 
   int _calculateSelectedIndex(String location) {
-    switch (location) {
-      case '/today':
-        return 0;
-      case '/meals':
-        return 1;
-      case '/calendar':
-        return 2;
-      default:
-        return 0;
-    }
+    if (location.startsWith('/meals')) return 1;
+    if (location.startsWith('/calendar')) return 2;
+    return 0;
   }
 
   void _onItemTapped(int index, BuildContext context) {
