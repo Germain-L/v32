@@ -13,83 +13,55 @@ class MealHistoryCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-          width: 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Material(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildImagePreview(context),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          _getSlotIcon(meal.slot),
-                          size: 16,
-                          color: colorScheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          meal.slot.displayName,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    if (meal.description?.isNotEmpty == true)
-                      Text(
-                        meal.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface,
-                        ),
-                      )
-                    else
-                      Text(
-                        'No description',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.6,
-                          ),
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatTime(meal.date),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-              ),
+              _buildHeader(theme, colorScheme),
+              const SizedBox(height: 10),
+              if (meal.hasImage && meal.imagePath != null) ...[
+                _buildImagePreview(context),
+                const SizedBox(height: 10),
+                _buildCaption(theme, colorScheme),
+              ] else
+                _buildTextOnlyPreview(theme, colorScheme),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ThemeData theme, ColorScheme colorScheme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+      child: Row(
+        children: [
+          Icon(_getSlotIcon(meal.slot), size: 18, color: colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            meal.slot.displayName,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Spacer(),
+          Text(
+            _formatTime(meal.date),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -99,10 +71,9 @@ class MealHistoryCard extends StatelessWidget {
 
     if (meal.hasImage && meal.imagePath != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          width: 64,
-          height: 64,
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 4 / 5,
           child: Image.file(
             File(meal.imagePath!),
             fit: BoxFit.cover,
@@ -119,16 +90,70 @@ class MealHistoryCard extends StatelessWidget {
 
   Widget _buildPlaceholder(ColorScheme colorScheme) {
     return Container(
-      width: 64,
-      height: 64,
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(
-        Icons.restaurant_outlined,
-        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-        size: 28,
+      child: AspectRatio(
+        aspectRatio: 4 / 5,
+        child: Center(
+          child: Icon(
+            Icons.restaurant_outlined,
+            size: 42,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCaption(ThemeData theme, ColorScheme colorScheme) {
+    final hasCaption = meal.description?.isNotEmpty == true;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+      child: Text(
+        hasCaption ? meal.description! : 'No description',
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: hasCaption
+              ? colorScheme.onSurface
+              : colorScheme.onSurfaceVariant,
+          fontStyle: hasCaption ? FontStyle.normal : FontStyle.italic,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextOnlyPreview(ThemeData theme, ColorScheme colorScheme) {
+    final hasCaption = meal.description?.isNotEmpty == true;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        child: Text(
+          hasCaption ? meal.description! : 'No description',
+          maxLines: 5,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.bodyLarge?.copyWith(
+            color: hasCaption
+                ? colorScheme.onSurface
+                : colorScheme.onSurfaceVariant,
+            fontStyle: hasCaption ? FontStyle.normal : FontStyle.italic,
+            height: 1.45,
+          ),
+        ),
       ),
     );
   }

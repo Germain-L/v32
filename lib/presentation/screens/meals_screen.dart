@@ -167,7 +167,7 @@ class _MealsScreenState extends State<MealsScreen>
   }
 
   Widget _buildMealList(ThemeData theme, ColorScheme colorScheme) {
-    final groupedMeals = _groupMealsByDate(_provider.meals);
+    final feedItems = _buildFeedItems(_provider.meals);
 
     return RefreshIndicator(
       onRefresh: _provider.refresh,
@@ -175,16 +175,24 @@ class _MealsScreenState extends State<MealsScreen>
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount:
-            groupedMeals.length +
+            feedItems.length +
             (_provider.hasMore || _provider.isLoading ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index == groupedMeals.length) {
+          if (index == feedItems.length) {
             return _buildLoadingFooter(colorScheme);
           }
 
-          final group = groupedMeals[index];
+          final item = feedItems[index];
+          if (item.isSeparator) {
+            return _buildStaggeredItem(
+              _buildDateSeparator(item.dateLabel!, theme, colorScheme),
+              index,
+            );
+          }
+
+          final meal = item.meal!;
           return _buildStaggeredItem(
-            _buildDateGroup(context, group, theme, colorScheme),
+            MealHistoryCard(meal: meal, onTap: () => _onMealTap(meal)),
             index,
           );
         },
@@ -192,29 +200,31 @@ class _MealsScreenState extends State<MealsScreen>
     );
   }
 
-  Widget _buildDateGroup(
-    BuildContext context,
-    _DateGroup group,
+  Widget _buildDateSeparator(
+    String label,
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-          child: Text(
-            group.dateLabel,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 10),
+      child: Row(
+        children: [
+          Text(
+            label,
             style: theme.textTheme.titleSmall?.copyWith(
-              color: colorScheme.primary,
+              color: colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),
-        ),
-        ...group.meals.map(
-          (meal) => MealHistoryCard(meal: meal, onTap: () => _onMealTap(meal)),
-        ),
-      ],
+          const SizedBox(width: 12),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -256,69 +266,164 @@ class _MealsScreenState extends State<MealsScreen>
     );
   }
 
-  List<_DateGroup> _groupMealsByDate(List<Meal> meals) {
-    final groups = <String, List<Meal>>{};
+  List<_FeedItem> _buildFeedItems(List<Meal> meals) {
+    if (meals.isEmpty) return [];
 
-    for (final meal in meals) {
-      final dateKey = _getDateKey(meal.date);
-      groups.putIfAbsent(dateKey, () => []).add(meal);
+    final sortedMeals = meals.toList()
+      ..sort((a, b) {
+        final dayCompare = _compareDayDesc(a.date, b.date);
+        if (dayCompare != 0) return dayCompare;
+
+        final slotCompare = _slotOrder(b.slot).compareTo(_slotOrder(a.slot));
+        if (slotCompare != 0) return slotCompare;
+
+        return b.date.compareTo(a.date);
+      });
+    final items = <_FeedItem>[];
+    DateTime? currentDate;
+
+    for (final meal in sortedMeals) {
+      if (currentDate == null || !_isSameDay(currentDate, meal.date)) {
+        currentDate = meal.date;
+        items.add(
+          _FeedItem.separator(_provider.getFormattedDateGroup(meal.date)),
+        );
+      }
+      items.add(_FeedItem.meal(meal));
     }
 
-    final sortedKeys = groups.keys.toList()..sort((a, b) => b.compareTo(a));
-
-    return sortedKeys.map((key) {
-      final mealsInGroup = groups[key]!;
-      mealsInGroup.sort((a, b) => b.date.compareTo(a.date));
-
-      final date = mealsInGroup.first.date;
-      return _DateGroup(
-        dateLabel: _provider.getFormattedDateGroup(date),
-        meals: mealsInGroup,
-      );
-    }).toList();
+    return items;
   }
 
-  String _getDateKey(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  int _compareDayDesc(DateTime a, DateTime b) {
+    final aDate = DateTime(a.year, a.month, a.day);
+    final bDate = DateTime(b.year, b.month, b.day);
+    return bDate.compareTo(aDate);
+  }
+
+  int _slotOrder(MealSlot slot) {
+    return switch (slot) {
+      MealSlot.breakfast => 0,
+      MealSlot.lunch => 1,
+      MealSlot.afternoonSnack => 2,
+      MealSlot.dinner => 3,
+    };
   }
 
   void _onMealTap(Meal meal) {
-    showDialog(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(meal.slot.displayName),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (meal.hasImage) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _MealPreviewSheet(meal: meal),
+    );
+  }
+}
+
+class _FeedItem {
+  final Meal? meal;
+  final String? dateLabel;
+
+  const _FeedItem._({this.meal, this.dateLabel});
+
+  factory _FeedItem.meal(Meal meal) => _FeedItem._(meal: meal);
+
+  factory _FeedItem.separator(String label) => _FeedItem._(dateLabel: label);
+
+  bool get isSeparator => dateLabel != null;
+}
+
+class _MealPreviewSheet extends StatelessWidget {
+  final Meal meal;
+
+  const _MealPreviewSheet({required this.meal});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            meal.slot.displayName,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Recorded at ${_formatDateTime(meal.date)}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (meal.hasImage)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 4 / 5,
                 child: Image.file(File(meal.imagePath!), fit: BoxFit.cover),
               ),
-              const SizedBox(height: 12),
-            ],
-            if (meal.description?.isNotEmpty == true)
-              Text(meal.description!)
-            else
-              const Text(
-                'No description',
-                style: TextStyle(fontStyle: FontStyle.italic),
+            )
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                ),
               ),
-            const SizedBox(height: 8),
-            Text(
-              'Recorded at ${_formatDateTime(meal.date)}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              child: Text(
+                meal.description?.isNotEmpty == true
+                    ? meal.description!
+                    : 'No description',
+                maxLines: 6,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: meal.description?.isNotEmpty == true
+                      ? colorScheme.onSurface
+                      : colorScheme.onSurfaceVariant,
+                  fontStyle: meal.description?.isNotEmpty == true
+                      ? FontStyle.normal
+                      : FontStyle.italic,
+                  height: 1.45,
+                ),
               ),
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
+          const SizedBox(height: 16),
+          if (meal.hasImage)
+            if (meal.description?.isNotEmpty == true)
+              Text(
+                meal.description!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                  height: 1.4,
+                ),
+              )
+            else
+              Text(
+                'No description',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
         ],
       ),
     );
@@ -329,11 +434,4 @@ class _MealsScreenState extends State<MealsScreen>
     final minute = date.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
-}
-
-class _DateGroup {
-  final String dateLabel;
-  final List<Meal> meals;
-
-  _DateGroup({required this.dateLabel, required this.meals});
 }
