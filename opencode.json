@@ -1,0 +1,100 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "mcp": {
+    "dart-mcp-server": {
+      "type": "local",
+      "command": ["dart", "mcp-server"],
+      "enabled": true,
+      "environment": {}
+    },
+    "pubdev": {
+      "type": "local",
+      "command": ["npx", "-y", "@devqxi/pubdev-mcp-server"],
+      "enabled": true
+    },
+    "filesystem": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/g.leignel/projects/personal/diet"
+      ],
+      "enabled": false
+    },
+    "memory": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-memory"],
+      "enabled": true
+    }
+  },
+
+  "tools": {
+    "pubdev": true,
+    "git": true,
+    "memory": true,
+    "sequential-thinking": true,
+    "filesystem": false
+  },
+
+  "instructions": ["./README.md", "./PLAN.md", "./pubspec.yaml"],
+
+  "permission": {
+    "read": "allow",
+    "edit": "ask",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "bash": {
+      "flutter": "allow",
+      "dart": "allow",
+      "git": "allow",
+      "pub": "allow",
+      "ls": "allow",
+      "cat": "allow",
+      "mkdir": "ask",
+      "rm": "ask",
+      "cp": "ask",
+      "mv": "ask"
+    }
+  },
+
+  "formatter": {
+    "dart": {
+      "command": ["dart", "format", "$FILE"],
+      "extensions": [".dart"]
+    }
+  },
+
+  "command": {
+    "test": {
+      "template": "Run Flutter tests and analyze results. Run 'flutter test' and examine any failures. Suggest fixes for failing tests.",
+      "description": "Run Flutter test suite"
+    },
+    "analyze": {
+      "template": "Run Flutter static analysis. Execute 'flutter analyze' and fix any issues found, focusing on critical errors and warnings.",
+      "description": "Run Flutter static analysis"
+    },
+    "build": {
+      "template": "Build the Flutter app for the current platform. Run 'flutter build' with appropriate flags and fix any build errors.",
+      "description": "Build Flutter application"
+    },
+    "pub-get": {
+      "template": "Get Flutter dependencies. Run 'flutter pub get' and handle any dependency resolution issues.",
+      "description": "Get Flutter dependencies"
+    },
+    "generate": {
+      "template": "Run code generation for build_runner. Execute 'flutter pub run build_runner build --delete-conflicting-outputs' for Isar or other generated code.",
+      "description": "Run code generation"
+    },
+    "clean": {
+      "template": "Clean Flutter build artifacts. Run 'flutter clean' followed by 'flutter pub get' to ensure a fresh state.",
+      "description": "Clean Flutter project"
+    },
+    "doctor": {
+      "template": "Check Flutter environment. Run 'flutter doctor' and identify any issues with the Flutter setup.",
+      "description": "Run Flutter doctor"
+    }
+  }
+}
