@@ -19,7 +19,7 @@ void main() {
           return null;
         });
   });
-  Future<File> _createTestImage() async {
+  Future<File> createTestImage() async {
     final image = img.Image(width: 20, height: 20);
     final bytes = img.encodeJpg(image);
     final file = File('${Directory.systemTemp.path}/diet_test_image.jpg');
@@ -36,7 +36,7 @@ void main() {
   });
 
   test('saveImage stores file and imageExists returns true', () async {
-    final file = await _createTestImage();
+    final file = await createTestImage();
     final path = await ImageStorageService.saveImage(file, maxWidth: 10);
 
     expect(path, isNotNull);
@@ -54,21 +54,23 @@ void main() {
   });
 
   test('cleanupOrphanedImages deletes unreferenced files', () async {
-    final file = await _createTestImage();
+    final file = await createTestImage();
     final path = await ImageStorageService.saveImage(file);
-    final another = await _createTestImage();
+    final another = await createTestImage();
     final orphanPath = await ImageStorageService.saveImage(another);
 
-    final deleted = await ImageStorageService.cleanupOrphanedImages([
-      if (path != null) path,
-    ]);
+    if (path == null) {
+      fail('Expected saveImage to return a path');
+    }
+
+    final deleted = await ImageStorageService.cleanupOrphanedImages([path]);
 
     expect(deleted, greaterThanOrEqualTo(1));
     expect(await ImageStorageService.imageExists(orphanPath), isFalse);
   });
 
   test('getTotalStorageSize returns non-zero for saved images', () async {
-    final file = await _createTestImage();
+    final file = await createTestImage();
     await ImageStorageService.saveImage(file);
 
     final size = await ImageStorageService.getTotalStorageSize();

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
@@ -191,7 +192,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => _provider.selectDate(day),
+      onTap: () async {
+        if (isSelected) {
+          await context.push('/calendar/day/${_formatRouteDate(day)}');
+          if (!mounted) return;
+          await _provider.refresh();
+          return;
+        }
+        _provider.selectDate(day);
+      },
       child: Container(
         decoration: BoxDecoration(
           color: bgColor,
@@ -518,6 +527,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       'December',
     ];
     return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
+  }
+
+  String _formatRouteDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
   }
 
   String _formatTime(DateTime date) {

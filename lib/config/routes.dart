@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../presentation/screens/today_screen.dart';
 import '../presentation/screens/meals_screen.dart';
 import '../presentation/screens/calendar_screen.dart';
+import '../presentation/screens/day_detail_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -51,8 +52,28 @@ final router = GoRouter(
         ),
       ],
     ),
+    GoRoute(
+      path: '/calendar/day/:date',
+      builder: (context, state) {
+        final dateParam = state.pathParameters['date'];
+        return DayDetailScreen(
+          initialDate: _parseDateParam(dateParam) ?? DateTime.now(),
+        );
+      },
+    ),
   ],
 );
+
+DateTime? _parseDateParam(String? value) {
+  if (value == null) return null;
+  final parts = value.split('-');
+  if (parts.length != 3) return null;
+  final year = int.tryParse(parts[0]);
+  final month = int.tryParse(parts[1]);
+  final day = int.tryParse(parts[2]);
+  if (year == null || month == null || day == null) return null;
+  return DateTime(year, month, day);
+}
 
 class MainScaffold extends StatelessWidget {
   final Widget child;

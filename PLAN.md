@@ -79,6 +79,11 @@ All existing functionality preserved with SQLite as the backing store.
 - [x] Smooth transitions between tabs.
 - [x] Final UI/UX pass for "premium" feel (shadows, typography).
 
+### Phase 6: Calendar Day Editing
+- [x] Add full screen day detail editor from calendar.
+- [x] Enable swipe navigation between days.
+- [x] Reuse meal slot UI with autosave for any date.
+
 ## 6. Development Workflow
 
 ### Tracking Progress
