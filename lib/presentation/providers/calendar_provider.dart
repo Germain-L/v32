@@ -1,10 +1,16 @@
 import 'package:flutter/foundation.dart';
+import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
+import '../../data/repositories/daily_metrics_repository.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 
 class CalendarProvider extends ChangeNotifier {
-  CalendarProvider(this._repository, this._ratingRepository) {
+  CalendarProvider(
+    this._repository,
+    this._ratingRepository, {
+    DailyMetricsRepository? metricsRepository,
+  }) : _metricsRepository = metricsRepository ?? DailyMetricsRepository() {
     final now = DateTime.now();
     _focusedMonth = DateTime(now.year, now.month, 1);
     _selectedDate = DateTime(now.year, now.month, now.day);
@@ -14,6 +20,7 @@ class CalendarProvider extends ChangeNotifier {
 
   final MealRepository _repository;
   final DayRatingRepository _ratingRepository;
+  final DailyMetricsRepository _metricsRepository;
 
   late DateTime _focusedMonth;
   late DateTime _selectedDate;
@@ -22,7 +29,9 @@ class CalendarProvider extends ChangeNotifier {
   String? _error;
   final Map<String, bool> _monthHasMeals = {};
   final Map<String, int> _monthRatings = {};
+  final Map<String, DailyMetrics> _monthMetrics = {};
   List<Meal> _selectedMeals = [];
+  DailyMetrics? _selectedMetrics;
 
   DateTime get focusedMonth => _focusedMonth;
   DateTime get selectedDate => _selectedDate;
@@ -30,6 +39,7 @@ class CalendarProvider extends ChangeNotifier {
   bool get isLoadingDay => _isLoadingDay;
   String? get error => _error;
   List<Meal> get selectedMeals => List.unmodifiable(_selectedMeals);
+  DailyMetrics? get selectedMetrics => _selectedMetrics;
 
   bool hasMealsForDate(DateTime date) {
     return _monthHasMeals[_dateKey(date)] ?? false;
@@ -37,6 +47,10 @@ class CalendarProvider extends ChangeNotifier {
 
   int? ratingForDate(DateTime date) {
     return _monthRatings[_dateKey(date)];
+  }
+
+  DailyMetrics? metricsForDate(DateTime date) {
+    return _monthMetrics[_dateKey(date)];
   }
 
   void selectDate(DateTime date) {
@@ -88,15 +102,27 @@ class CalendarProvider extends ChangeNotifier {
         _focusedMonth.year,
         _focusedMonth.month,
       );
-      final results = await Future.wait([mealsFuture, ratingsFuture]);
+      final metricsFuture = _metricsRepository.getMetricsForMonth(
+        _focusedMonth.year,
+        _focusedMonth.month,
+      );
+      final results = await Future.wait([
+        mealsFuture,
+        ratingsFuture,
+        metricsFuture,
+      ]);
       final meals = results[0] as List<Meal>;
       final ratings = results[1] as Map<String, int>;
+      final metrics = results[2] as Map<String, DailyMetrics>;
       _monthHasMeals
         ..clear()
         ..addAll(_buildMonthMealMap(meals));
       _monthRatings
         ..clear()
         ..addAll(ratings);
+      _monthMetrics
+        ..clear()
+        ..addAll(metrics);
     } catch (e) {
       _error = 'Failed to load calendar: $e';
     } finally {
@@ -113,6 +139,9 @@ class CalendarProvider extends ChangeNotifier {
     try {
       _selectedMeals = await _repository.getMealsForDate(_selectedDate);
       _selectedMeals.sort((a, b) => a.date.compareTo(b.date));
+      _selectedMetrics = await _metricsRepository.getMetricsForDate(
+        _selectedDate,
+      );
     } catch (e) {
       _error = 'Failed to load meals: $e';
     } finally {

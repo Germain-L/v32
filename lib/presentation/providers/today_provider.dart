@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
+import '../../data/repositories/daily_metrics_repository.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../../data/services/image_storage_service.dart';
@@ -10,6 +12,7 @@ import '../../data/services/image_storage_service.dart';
 class TodayProvider extends ChangeNotifier {
   final MealRepository _repository;
   final DayRatingRepository _ratingRepository;
+  final DailyMetricsRepository _metricsRepository;
   final _picker = ImagePicker();
 
   final Map<MealSlot, Meal?> _meals = {};
@@ -21,11 +24,22 @@ class TodayProvider extends ChangeNotifier {
   final Map<MealSlot, bool> _isClearing = {};
   String? _error;
   int? _dayRating;
+  double? _waterLiters;
+  bool? _exerciseDone;
+  String _exerciseNote = '';
+  Timer? _metricsDebounce;
+  bool _isSavingMetrics = false;
+  bool _hasPendingMetricsSave = false;
 
-  TodayProvider(this._repository, this._ratingRepository) {
+  TodayProvider(
+    this._repository,
+    this._ratingRepository, {
+    DailyMetricsRepository? metricsRepository,
+  }) : _metricsRepository = metricsRepository ?? DailyMetricsRepository() {
     _initializeSlots();
     loadTodayMeals();
     loadDayRating();
+    loadDailyMetrics();
   }
 
   void _initializeSlots() {
@@ -45,6 +59,10 @@ class TodayProvider extends ChangeNotifier {
   String getDescription(MealSlot slot) => _descriptions[slot] ?? '';
   String? get error => _error;
   int? get dayRating => _dayRating;
+  double? get waterLiters => _waterLiters;
+  bool get exerciseDone => _exerciseDone ?? false;
+  String get exerciseNote => _exerciseNote;
+  bool get isWaterGoalMet => (_waterLiters ?? 0) >= 1.5;
 
   Future<void> loadTodayMeals() async {
     try {
@@ -70,6 +88,42 @@ class TodayProvider extends ChangeNotifier {
       _error = 'Failed to load day rating: $e';
       notifyListeners();
     }
+  }
+
+  Future<void> loadDailyMetrics() async {
+    try {
+      final metrics = await _metricsRepository.getMetricsForDate(
+        DateTime.now(),
+      );
+      _waterLiters = metrics?.waterLiters;
+      _exerciseDone = metrics?.exerciseDone;
+      _exerciseNote = metrics?.exerciseNote ?? '';
+      notifyListeners();
+    } catch (e) {
+      _error = 'Failed to load daily metrics: $e';
+      notifyListeners();
+    }
+  }
+
+  void updateWaterLiters(String input) {
+    _waterLiters = _parseWaterInput(input);
+    _scheduleMetricsSave();
+    notifyListeners();
+  }
+
+  void updateExerciseDone(bool value) {
+    _exerciseDone = value;
+    _scheduleMetricsSave(immediate: true);
+    notifyListeners();
+  }
+
+  void updateExerciseNote(String note) {
+    _exerciseNote = note;
+    if (note.trim().isNotEmpty) {
+      _exerciseDone = true;
+    }
+    _scheduleMetricsSave();
+    notifyListeners();
   }
 
   Future<void> updateDayRating(int score) async {
@@ -348,12 +402,83 @@ class TodayProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _scheduleMetricsSave({bool immediate = false}) {
+    _hasPendingMetricsSave = true;
+    _metricsDebounce?.cancel();
+    if (immediate) {
+      _saveDailyMetrics();
+    } else {
+      _metricsDebounce = Timer(const Duration(milliseconds: 250), () {
+        _saveDailyMetrics();
+      });
+    }
+  }
+
+  Future<void> _saveDailyMetrics() async {
+    if (!_hasPendingMetricsSave) return;
+    if (_isSavingMetrics) {
+      _hasPendingMetricsSave = true;
+      return;
+    }
+
+    _isSavingMetrics = true;
+    _hasPendingMetricsSave = false;
+    var didDelete = false;
+
+    try {
+      final normalized = DateTime.now();
+      final shouldDelete =
+          _waterLiters == null &&
+          (_exerciseDone != true) &&
+          _exerciseNote.trim().isEmpty;
+      if (shouldDelete) {
+        await _metricsRepository.deleteMetricsForDate(normalized);
+        didDelete = true;
+      } else {
+        await _metricsRepository.saveMetrics(
+          DailyMetrics(
+            date: normalized,
+            waterLiters: _waterLiters,
+            exerciseDone: _exerciseDone,
+            exerciseNote: _exerciseNote.trim().isEmpty
+                ? null
+                : _exerciseNote.trim(),
+          ),
+        );
+      }
+    } catch (e) {
+      _error = 'Failed to save daily metrics: $e';
+      notifyListeners();
+    } finally {
+      _isSavingMetrics = false;
+    }
+
+    if (_hasPendingMetricsSave) {
+      await _saveDailyMetrics();
+      return;
+    }
+
+    if (didDelete) {
+      notifyListeners();
+    }
+  }
+
+  double? _parseWaterInput(String input) {
+    final cleaned = input.trim().replaceAll(',', '.');
+    if (cleaned.isEmpty) return null;
+    final value = double.tryParse(cleaned);
+    if (value == null) return null;
+    if (value < 0) return null;
+    return value;
+  }
+
   @override
   void dispose() {
     flushPendingSaves();
     for (final timer in _debounceTimers.values) {
       timer?.cancel();
     }
+    _metricsDebounce?.cancel();
     super.dispose();
   }
 }

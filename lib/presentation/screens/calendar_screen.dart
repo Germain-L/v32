@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
@@ -147,6 +148,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           final isCurrentMonth = day.month == _provider.focusedMonth.month;
           final isSelected = _isSameDay(day, selected);
           final rating = _provider.ratingForDate(day);
+          final metrics = _provider.metricsForDate(day);
           return _buildDayCell(
             theme,
             colorScheme,
@@ -154,6 +156,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             isCurrentMonth: isCurrentMonth,
             isSelected: isSelected,
             rating: rating,
+            metrics: metrics,
           );
         },
       ),
@@ -167,6 +170,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     required bool isCurrentMonth,
     required bool isSelected,
     required int? rating,
+    required DailyMetrics? metrics,
   }) {
     final baseColor = isSelected
         ? colorScheme.primary
@@ -189,6 +193,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         : rating != null
         ? ratingColor.withValues(alpha: 0.65)
         : colorScheme.outlineVariant.withValues(alpha: 0.4);
+    final waterLiters = metrics?.waterLiters;
+    final exerciseDone = metrics?.exerciseDone == true;
+    final isWaterGoalMet = (waterLiters ?? 0) >= 1.5;
+    final showDots = isCurrentMonth;
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -240,8 +248,46 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                 ),
               ),
+            if (showDots && isWaterGoalMet)
+              Positioned(
+                left: 6,
+                top: 6,
+                child: _buildCornerDot(
+                  color: isSelected
+                      ? colorScheme.onPrimary
+                      : colorScheme.tertiary,
+                  borderColor: isSelected
+                      ? colorScheme.onPrimary.withValues(alpha: 0.7)
+                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+              ),
+            if (showDots && exerciseDone)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: _buildCornerDot(
+                  color: isSelected
+                      ? colorScheme.onPrimary
+                      : colorScheme.secondary,
+                  borderColor: isSelected
+                      ? colorScheme.onPrimary.withValues(alpha: 0.7)
+                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildCornerDot({required Color color, required Color borderColor}) {
+    return Container(
+      width: 6,
+      height: 6,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: borderColor, width: 1),
       ),
     );
   }
@@ -251,13 +297,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
       return _buildErrorState(colorScheme);
     }
 
-    if (_provider.selectedMeals.isEmpty && !_provider.isLoadingDay) {
+    final metrics = _provider.selectedMetrics;
+    if (_provider.selectedMeals.isEmpty &&
+        !_provider.isLoadingDay &&
+        metrics == null) {
       return _buildEmptyState(theme, colorScheme);
     }
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-      itemCount: _provider.selectedMeals.length + 1,
+      itemCount: _provider.selectedMeals.length + 2,
       itemBuilder: (context, index) {
         if (index == 0) {
           return Padding(
@@ -271,9 +320,95 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           );
         }
-        final meal = _provider.selectedMeals[index - 1];
+        if (index == 1) {
+          return _buildSelectedMetrics(theme, colorScheme, metrics);
+        }
+        final meal = _provider.selectedMeals[index - 2];
         return _buildMealRow(theme, colorScheme, meal);
       },
+    );
+  }
+
+  Widget _buildSelectedMetrics(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    DailyMetrics? metrics,
+  ) {
+    final water = metrics?.waterLiters;
+    final exerciseDone = metrics?.exerciseDone == true;
+    final note = metrics?.exerciseNote;
+    final isGoalMet = (water ?? 0) >= 1.5;
+    final exerciseLabel = metrics == null ? '—' : (exerciseDone ? 'Yes' : 'No');
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.water_drop_outlined,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Daily Metrics',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                if (isGoalMet)
+                  Text(
+                    'Goal met',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.tertiary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              water == null
+                  ? 'Water: —'
+                  : 'Water: ${_formatWater(water)} L'
+                        '${isGoalMet ? ' (goal met)' : ''}',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Exercise: $exerciseLabel',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+            ),
+            if (note != null && note.trim().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                note,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -539,6 +674,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  String _formatWater(double value) {
+    return value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
   }
 
   IconData _getSlotIcon(MealSlot slot) {

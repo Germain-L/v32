@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
+import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
+import '../../data/repositories/daily_metrics_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 
 class MealsProvider extends ChangeNotifier {
   final MealRepository _repository;
+  final DailyMetricsRepository _metricsRepository;
 
   final List<Meal> _meals = [];
   final int _pageSize;
@@ -13,10 +16,16 @@ class MealsProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _hasMore = true;
   String? _error;
+  final Map<String, DailyMetrics> _metricsByDate = {};
 
-  MealsProvider(this._repository, {int pageSize = 20, bool autoLoad = true})
-    : _pageSize = pageSize,
-      _autoLoad = autoLoad {
+  MealsProvider(
+    this._repository, {
+    DailyMetricsRepository? metricsRepository,
+    int pageSize = 20,
+    bool autoLoad = true,
+  }) : _metricsRepository = metricsRepository ?? DailyMetricsRepository(),
+       _pageSize = pageSize,
+       _autoLoad = autoLoad {
     if (_autoLoad) {
       loadMoreMeals();
     }
@@ -26,6 +35,9 @@ class MealsProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get hasMore => _hasMore;
   String? get error => _error;
+  DailyMetrics? metricsForDate(DateTime date) {
+    return _metricsByDate[_dateKey(date)];
+  }
 
   Future<void> loadMoreMeals() async {
     if (_isLoading || !_hasMore) return;
@@ -57,6 +69,8 @@ class MealsProvider extends ChangeNotifier {
           _lastMealDate = uniqueNewMeals.last.date;
           _lastMealId = uniqueNewMeals.last.id;
 
+          await _loadMetricsForMeals(uniqueNewMeals);
+
           if (uniqueNewMeals.length < _pageSize) {
             _hasMore = false;
           }
@@ -76,6 +90,7 @@ class MealsProvider extends ChangeNotifier {
     _lastMealId = null;
     _hasMore = true;
     _error = null;
+    _metricsByDate.clear();
     notifyListeners();
     await loadMoreMeals();
   }
@@ -127,5 +142,25 @@ class MealsProvider extends ChangeNotifier {
       'December',
     ];
     return months[month - 1];
+  }
+
+  Future<void> _loadMetricsForMeals(List<Meal> meals) async {
+    if (meals.isEmpty) return;
+    final dates = meals.map((meal) => meal.date).toList();
+    dates.sort((a, b) => a.compareTo(b));
+    final start = DateTime(
+      dates.first.year,
+      dates.first.month,
+      dates.first.day,
+    );
+    final end = DateTime(dates.last.year, dates.last.month, dates.last.day);
+    final metrics = await _metricsRepository.getMetricsForRange(start, end);
+    if (metrics.isNotEmpty) {
+      _metricsByDate.addAll(metrics);
+    }
+  }
+
+  String _dateKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

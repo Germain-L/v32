@@ -148,6 +148,10 @@ class _DayDetailPageState extends State<DayDetailPage>
   late final AnimationController _listController;
   final Map<MealSlot, TextEditingController> _controllers = {};
   final Map<MealSlot, FocusNode> _focusNodes = {};
+  late final TextEditingController _waterController;
+  late final TextEditingController _exerciseNoteController;
+  late final FocusNode _waterFocusNode;
+  late final FocusNode _exerciseNoteFocusNode;
 
   @override
   void initState() {
@@ -161,6 +165,10 @@ class _DayDetailPageState extends State<DayDetailPage>
       _controllers[slot] = TextEditingController();
       _focusNodes[slot] = FocusNode();
     }
+    _waterController = TextEditingController();
+    _exerciseNoteController = TextEditingController();
+    _waterFocusNode = FocusNode();
+    _exerciseNoteFocusNode = FocusNode();
     _listController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 650),
@@ -176,6 +184,10 @@ class _DayDetailPageState extends State<DayDetailPage>
     for (final node in _focusNodes.values) {
       node.dispose();
     }
+    _waterController.dispose();
+    _exerciseNoteController.dispose();
+    _waterFocusNode.dispose();
+    _exerciseNoteFocusNode.dispose();
     _listController.dispose();
     super.dispose();
   }
@@ -199,6 +211,27 @@ class _DayDetailPageState extends State<DayDetailPage>
             );
           }
         }
+        final waterText = _provider.waterLiters == null
+            ? ''
+            : _formatWater(_provider.waterLiters!);
+        if (_waterController.text != waterText && !_waterFocusNode.hasFocus) {
+          _waterController.value = _waterController.value.copyWith(
+            text: waterText,
+            selection: TextSelection.collapsed(offset: waterText.length),
+            composing: TextRange.empty,
+          );
+        }
+        if (_exerciseNoteController.text != _provider.exerciseNote &&
+            !_exerciseNoteFocusNode.hasFocus) {
+          _exerciseNoteController.value = _exerciseNoteController.value
+              .copyWith(
+                text: _provider.exerciseNote,
+                selection: TextSelection.collapsed(
+                  offset: _provider.exerciseNote.length,
+                ),
+                composing: TextRange.empty,
+              );
+        }
 
         if (_provider.error != null) {
           return _buildErrorWidget(colorScheme);
@@ -206,12 +239,15 @@ class _DayDetailPageState extends State<DayDetailPage>
 
         return ListView.builder(
           padding: const EdgeInsets.only(top: 8, bottom: 20),
-          itemCount: MealSlot.values.length + 1,
+          itemCount: MealSlot.values.length + 2,
           itemBuilder: (context, index) {
             if (index == 0) {
               return _buildStaggeredItem(_buildDayRating(theme), index);
             }
-            final slot = MealSlot.values[index - 1];
+            if (index == 1) {
+              return _buildStaggeredItem(_buildDailyMetrics(theme), index);
+            }
+            final slot = MealSlot.values[index - 2];
             return _buildStaggeredItem(
               MealSlotWidget(
                 slot: slot,
@@ -357,6 +393,177 @@ class _DayDetailPageState extends State<DayDetailPage>
     );
   }
 
+  Widget _buildDailyMetrics(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final goalMet = _provider.isWaterGoalMet;
+    final waterLabel = _provider.waterLiters == null
+        ? 'Not logged'
+        : '${_formatWater(_provider.waterLiters!)} L';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.water_drop_outlined,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Daily Metrics',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const Spacer(),
+                if (goalMet)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.tertiary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Goal met',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.tertiary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Log water and exercise for this day.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(
+                  Icons.opacity,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Water',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: 110,
+                  child: TextField(
+                    controller: _waterController,
+                    focusNode: _waterFocusNode,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    onChanged: _provider.updateWaterLiters,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      suffixText: 'L',
+                      hintText: '0.0',
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text(
+                  'Goal: 1.5 L',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  waterLabel,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: goalMet
+                        ? colorScheme.tertiary
+                        : colorScheme.onSurfaceVariant,
+                    fontWeight: goalMet ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(
+                  Icons.directions_run_outlined,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Exercise',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Switch.adaptive(
+                  value: _provider.exerciseDone,
+                  onChanged: _provider.updateExerciseDone,
+                ),
+              ],
+            ),
+            TextField(
+              controller: _exerciseNoteController,
+              focusNode: _exerciseNoteFocusNode,
+              maxLines: 2,
+              minLines: 1,
+              onChanged: _provider.updateExerciseNote,
+              decoration: InputDecoration(
+                hintText: 'Optional: walk, gym, yoga',
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Color _ratingColor(ColorScheme colorScheme, int rating) {
     return switch (rating) {
       1 => colorScheme.error,
@@ -364,6 +571,10 @@ class _DayDetailPageState extends State<DayDetailPage>
       3 => colorScheme.primary,
       _ => colorScheme.outline,
     };
+  }
+
+  String _formatWater(double value) {
+    return value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
   }
 
   Widget _buildStaggeredItem(Widget child, int index) {

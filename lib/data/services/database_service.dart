@@ -22,7 +22,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -32,7 +32,7 @@ class DatabaseService {
   static Future<void> useInMemoryDatabaseForTesting() async {
     _database = await openDatabase(
       inMemoryDatabasePath,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -59,6 +59,18 @@ class DatabaseService {
       )
     ''');
     await db.execute('CREATE INDEX idx_day_ratings_date ON day_ratings(date)');
+
+    await db.execute('''
+      CREATE TABLE daily_metrics(
+        date INTEGER PRIMARY KEY,
+        water_liters REAL,
+        exercise_done INTEGER,
+        exercise_note TEXT
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX idx_daily_metrics_date ON daily_metrics(date)',
+    );
   }
 
   static Future<void> _onUpgrade(
@@ -75,6 +87,19 @@ class DatabaseService {
       ''');
       await db.execute(
         'CREATE INDEX idx_day_ratings_date ON day_ratings(date)',
+      );
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE daily_metrics(
+          date INTEGER PRIMARY KEY,
+          water_liters REAL,
+          exercise_done INTEGER,
+          exercise_note TEXT
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX idx_daily_metrics_date ON daily_metrics(date)',
       );
     }
   }

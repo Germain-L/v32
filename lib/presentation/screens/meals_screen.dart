@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../providers/meals_provider.dart';
@@ -189,6 +189,12 @@ class _MealsScreenState extends State<MealsScreen>
               index,
             );
           }
+          if (item.isMetrics) {
+            return _buildStaggeredItem(
+              _buildMetricsSummary(theme, colorScheme, item.metricsDate!),
+              index,
+            );
+          }
 
           final meal = item.meal!;
           return _buildStaggeredItem(
@@ -224,6 +230,96 @@ class _MealsScreenState extends State<MealsScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMetricsSummary(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    DateTime date,
+  ) {
+    final metrics = _provider.metricsForDate(date);
+    if (metrics == null) {
+      return const SizedBox.shrink();
+    }
+    final water = metrics?.waterLiters;
+    final exerciseDone = metrics?.exerciseDone == true;
+    final note = metrics?.exerciseNote;
+    final isGoalMet = (water ?? 0) >= 1.5;
+    final exerciseLabel = metrics == null ? '—' : (exerciseDone ? 'Yes' : 'No');
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.water_drop_outlined,
+              size: 16,
+              color: colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              water == null
+                  ? 'Water: —'
+                  : 'Water: ${_formatWater(water)} L'
+                        '${isGoalMet ? ' (goal met)' : ''}',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 4,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Exercise: $exerciseLabel',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (note != null && note.trim().isNotEmpty) ...[
+              const SizedBox(width: 10),
+              Container(
+                width: 4,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  note,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ] else
+              const Spacer(),
+          ],
+        ),
       ),
     );
   }
@@ -288,6 +384,7 @@ class _MealsScreenState extends State<MealsScreen>
         items.add(
           _FeedItem.separator(_provider.getFormattedDateGroup(meal.date)),
         );
+        items.add(_FeedItem.metrics(meal.date));
       }
       items.add(_FeedItem.meal(meal));
     }
@@ -331,14 +428,18 @@ class _MealsScreenState extends State<MealsScreen>
 class _FeedItem {
   final Meal? meal;
   final String? dateLabel;
+  final DateTime? metricsDate;
 
-  const _FeedItem._({this.meal, this.dateLabel});
+  const _FeedItem._({this.meal, this.dateLabel, this.metricsDate});
 
   factory _FeedItem.meal(Meal meal) => _FeedItem._(meal: meal);
 
   factory _FeedItem.separator(String label) => _FeedItem._(dateLabel: label);
 
+  factory _FeedItem.metrics(DateTime date) => _FeedItem._(metricsDate: date);
+
   bool get isSeparator => dateLabel != null;
+  bool get isMetrics => metricsDate != null;
 }
 
 class _MealPreviewSheet extends StatelessWidget {
@@ -434,4 +535,8 @@ class _MealPreviewSheet extends StatelessWidget {
     final minute = date.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
   }
+}
+
+String _formatWater(double value) {
+  return value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
 }
