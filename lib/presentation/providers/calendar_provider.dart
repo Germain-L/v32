@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../gen_l10n/app_localizations.dart';
 import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/daily_metrics_repository.dart';
@@ -88,7 +89,7 @@ class CalendarProvider extends ChangeNotifier {
     await Future.wait([_loadMonth(), _loadSelectedDate()]);
   }
 
-  Future<void> _loadMonth() async {
+  Future<void> _loadMonth({AppLocalizations? l10n}) async {
     _isLoadingMonth = true;
     _error = null;
     notifyListeners();
@@ -129,7 +130,9 @@ class CalendarProvider extends ChangeNotifier {
         ..clear()
         ..addAll(metrics);
     } catch (e) {
-      _error = 'Failed to load calendar: $e';
+      _error = l10n != null
+          ? '${l10n.errorLoadCalendar}: $e'
+          : 'Failed to load calendar: $e';
     } finally {
       _isLoadingMonth = false;
       notifyListeners();

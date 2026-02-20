@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
+import '../../utils/l10n_helper.dart';
 
 class MealSlotWidget extends StatelessWidget {
   final MealSlot slot;
@@ -63,7 +64,7 @@ class MealSlotWidget extends StatelessWidget {
             Icon(_getSlotIcon(), color: theme.colorScheme.primary),
             const SizedBox(width: 8),
             Text(
-              slot.displayName,
+              slot.localizedName(context.l10n),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -74,7 +75,7 @@ class MealSlotWidget extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.clear, size: 20),
             onPressed: onClearMeal,
-            tooltip: 'Clear meal',
+            tooltip: context.l10n.clearMealTooltip,
           ),
       ],
     );
@@ -129,7 +130,7 @@ class MealSlotWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Image not found',
+                        context.l10n.imageNotFound,
                         style: TextStyle(color: theme.colorScheme.error),
                       ),
                     ],
@@ -148,13 +149,13 @@ class MealSlotWidget extends StatelessWidget {
               _buildActionButton(
                 icon: Icons.edit,
                 onTap: onCapturePhoto,
-                tooltip: 'Replace photo',
+                tooltip: context.l10n.replacePhoto,
               ),
               const SizedBox(width: 8),
               _buildActionButton(
                 icon: Icons.delete,
                 onTap: onDeletePhoto,
-                tooltip: 'Delete photo',
+                tooltip: context.l10n.deletePhoto,
                 isDestructive: true,
               ),
             ],
@@ -184,7 +185,7 @@ class MealSlotWidget extends StatelessWidget {
           _buildPhotoButton(
             context: context,
             icon: Icons.camera_alt,
-            label: 'Camera',
+            label: context.l10n.camera,
             onTap: onCapturePhoto,
           ),
           Container(
@@ -195,7 +196,7 @@ class MealSlotWidget extends StatelessWidget {
           _buildPhotoButton(
             context: context,
             icon: Icons.photo_library,
-            label: 'Gallery',
+            label: context.l10n.gallery,
             onTap: onPickImage,
           ),
         ],
@@ -277,7 +278,7 @@ class MealSlotWidget extends StatelessWidget {
           minLines: 2,
           textCapitalization: TextCapitalization.sentences,
           decoration: InputDecoration(
-            hintText: 'Add a description (optional)...',
+            hintText: context.l10n.addDescriptionHint,
             hintStyle: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

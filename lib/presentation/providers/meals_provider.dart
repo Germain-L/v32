@@ -3,6 +3,7 @@ import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/daily_metrics_repository.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../gen_l10n/app_localizations.dart';
 
 class MealsProvider extends ChangeNotifier {
   final MealRepository _repository;
@@ -40,7 +41,7 @@ class MealsProvider extends ChangeNotifier {
     return _metricsByDate[_dateKey(date)];
   }
 
-  Future<void> loadMoreMeals() async {
+  Future<void> loadMoreMeals([AppLocalizations? l10n]) async {
     if (_isLoading || !_hasMore) return;
 
     _isLoading = true;
@@ -78,7 +79,9 @@ class MealsProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      _error = 'Failed to load meals: $e';
+      _error = l10n != null
+          ? '${l10n.errorLoadMeals}: $e'
+          : 'Failed to load meals: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -102,14 +105,14 @@ class MealsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  String getFormattedDateGroup(DateTime date) {
+  String getFormattedDateGroup(DateTime date, [AppLocalizations? l10n]) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final mealDate = DateTime(date.year, date.month, date.day);
     final difference = today.difference(mealDate).inDays;
 
-    if (difference == 0) return 'Today';
-    if (difference == 1) return 'Yesterday';
+    if (difference == 0) return l10n?.today ?? 'Today';
+    if (difference == 1) return l10n?.yesterday ?? 'Yesterday';
     if (difference < 7) {
       final weekdays = [
         'Monday',

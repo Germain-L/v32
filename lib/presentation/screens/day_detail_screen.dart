@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../gen_l10n/app_localizations.dart';
+import '../../utils/date_formatter.dart';
+import '../../utils/l10n_helper.dart';
+import '../../utils/meal_slot_localization.dart';
 import '../providers/day_detail_provider.dart';
 import '../widgets/meal_slot.dart';
 
@@ -45,14 +49,15 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
         title: Column(
           children: [
-            const Text('Day Detail'),
+            Text(l10n.dayDetailTitle),
             Text(
-              _formatDate(_currentDate),
+              context.dateFormatter.formatFullDate(_currentDate),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -62,7 +67,7 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            tooltip: 'Jump to today',
+            tooltip: l10n.jumpToToday,
             icon: const Icon(Icons.today),
             onPressed: _jumpToToday,
           ),
@@ -103,34 +108,6 @@ class _DayDetailScreenState extends State<DayDetailScreen> {
       duration: const Duration(milliseconds: 280),
       curve: Curves.easeOutCubic,
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    final weekdays = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-
-    return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
   }
 }
 
@@ -209,6 +186,7 @@ class _DayDetailPageState extends State<DayDetailPage>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return ListenableBuilder(
       listenable: _provider,
@@ -247,7 +225,7 @@ class _DayDetailPageState extends State<DayDetailPage>
         }
 
         if (_provider.error != null) {
-          return _buildErrorWidget(colorScheme);
+          return _buildErrorWidget(colorScheme, l10n);
         }
 
         return ListView.builder(
@@ -255,10 +233,13 @@ class _DayDetailPageState extends State<DayDetailPage>
           itemCount: MealSlot.values.length + 2,
           itemBuilder: (context, index) {
             if (index == 0) {
-              return _buildStaggeredItem(_buildDayRating(theme), index);
+              return _buildStaggeredItem(_buildDayRating(theme, l10n), index);
             }
             if (index == 1) {
-              return _buildStaggeredItem(_buildDailyMetrics(theme), index);
+              return _buildStaggeredItem(
+                _buildDailyMetrics(theme, l10n),
+                index,
+              );
             }
             final slot = MealSlot.values[index - 2];
             return _buildStaggeredItem(
@@ -266,10 +247,10 @@ class _DayDetailPageState extends State<DayDetailPage>
                 slot: slot,
                 meal: _provider.getMeal(slot),
                 isLoading: _provider.isLoading(slot),
-                onCapturePhoto: () => _provider.capturePhoto(slot),
-                onPickImage: () => _provider.pickImage(slot),
-                onDeletePhoto: () => _provider.deletePhoto(slot),
-                onClearMeal: () => _showClearConfirmation(slot),
+                onCapturePhoto: () => _provider.capturePhoto(slot, l10n),
+                onPickImage: () => _provider.pickImage(slot, l10n),
+                onDeletePhoto: () => _provider.deletePhoto(slot, l10n),
+                onClearMeal: () => _showClearConfirmation(slot, l10n),
                 descriptionController: _controllers[slot],
                 descriptionFocusNode: _focusNodes[slot],
                 onDescriptionChanged: (value) =>
@@ -286,13 +267,17 @@ class _DayDetailPageState extends State<DayDetailPage>
     );
   }
 
-  Widget _buildDayRating(ThemeData theme) {
+  Widget _buildDayRating(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
     final rating = _provider.dayRating;
     final options = [
-      (value: 1, label: 'Bad', icon: Icons.sentiment_very_dissatisfied),
-      (value: 2, label: 'Okay', icon: Icons.sentiment_neutral),
-      (value: 3, label: 'Great', icon: Icons.sentiment_very_satisfied),
+      (
+        value: 1,
+        label: l10n.ratingBad,
+        icon: Icons.sentiment_very_dissatisfied,
+      ),
+      (value: 2, label: l10n.ratingOkay, icon: Icons.sentiment_neutral),
+      (value: 3, label: l10n.ratingGreat, icon: Icons.sentiment_very_satisfied),
     ];
 
     return Padding(
@@ -314,7 +299,7 @@ class _DayDetailPageState extends State<DayDetailPage>
                 Icon(Icons.auto_awesome, size: 18, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'How was your day?',
+                  l10n.howWasYourDay,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
@@ -322,7 +307,7 @@ class _DayDetailPageState extends State<DayDetailPage>
                 ),
                 const Spacer(),
                 Text(
-                  rating == null ? 'Not set' : 'Logged',
+                  rating == null ? l10n.ratingNotSet : l10n.ratingLogged,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -332,7 +317,7 @@ class _DayDetailPageState extends State<DayDetailPage>
             ),
             const SizedBox(height: 4),
             Text(
-              'Tap the mood that matches this day overall.',
+              l10n.dayRatingSubtitleDay,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -349,7 +334,8 @@ class _DayDetailPageState extends State<DayDetailPage>
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(16),
-                        onTap: () => _provider.updateDayRating(option.value),
+                        onTap: () =>
+                            _provider.updateDayRating(option.value, l10n),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           curve: Curves.easeOutCubic,
@@ -406,11 +392,11 @@ class _DayDetailPageState extends State<DayDetailPage>
     );
   }
 
-  Widget _buildDailyMetrics(ThemeData theme) {
+  Widget _buildDailyMetrics(ThemeData theme, AppLocalizations l10n) {
     final colorScheme = theme.colorScheme;
     final goalMet = _provider.isWaterGoalMet;
     final waterLabel = _provider.waterLiters == null
-        ? 'Not logged'
+        ? l10n.notLogged
         : '${_formatWater(_provider.waterLiters!)} L';
 
     return Padding(
@@ -436,7 +422,7 @@ class _DayDetailPageState extends State<DayDetailPage>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Daily Metrics',
+                  l10n.dailyMetrics,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
@@ -454,7 +440,7 @@ class _DayDetailPageState extends State<DayDetailPage>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Goal met',
+                      l10n.goalMet,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.tertiary,
                         fontWeight: FontWeight.w600,
@@ -465,7 +451,7 @@ class _DayDetailPageState extends State<DayDetailPage>
             ),
             const SizedBox(height: 4),
             Text(
-              'Log water and exercise for this day.',
+              l10n.dailyMetricsSubtitleDay,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -480,7 +466,7 @@ class _DayDetailPageState extends State<DayDetailPage>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Water',
+                  l10n.waterLabel,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -515,7 +501,7 @@ class _DayDetailPageState extends State<DayDetailPage>
             Row(
               children: [
                 Text(
-                  'Goal: 1.5 L',
+                  l10n.waterGoal,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -542,7 +528,7 @@ class _DayDetailPageState extends State<DayDetailPage>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Exercise',
+                  l10n.exerciseLabel,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -561,7 +547,7 @@ class _DayDetailPageState extends State<DayDetailPage>
               minLines: 1,
               onChanged: _provider.updateExerciseNote,
               decoration: InputDecoration(
-                hintText: 'Optional: walk, gym, yoga',
+                hintText: l10n.exerciseHintText,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 10,
@@ -610,7 +596,7 @@ class _DayDetailPageState extends State<DayDetailPage>
     );
   }
 
-  Widget _buildErrorWidget(ColorScheme colorScheme) {
+  Widget _buildErrorWidget(ColorScheme colorScheme, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -626,36 +612,43 @@ class _DayDetailPageState extends State<DayDetailPage>
           FilledButton(
             onPressed: () {
               _provider.clearError();
-              _provider.loadMealsForDate();
+              _provider.loadMealsForDate(l10n);
             },
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _showClearConfirmation(MealSlot slot) async {
+  Future<void> _showClearConfirmation(
+    MealSlot slot,
+    AppLocalizations l10n,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Meal'),
-        content: Text('Are you sure you want to clear ${slot.displayName}?'),
+        title: Text(l10n.clearMeal),
+        content: Text(
+          l10n.clearMealConfirmation(
+            MealSlotLocalization(slot).localizedName(l10n),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear'),
+            child: Text(l10n.clear),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      await _provider.clearMeal(slot);
+      await _provider.clearMeal(slot, l10n);
     }
   }
 }

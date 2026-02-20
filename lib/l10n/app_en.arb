@@ -1,0 +1,402 @@
+{
+  "@@locale": "en",
+  
+  "appTitle": "Diet",
+  "@appTitle": {
+    "description": "The application title displayed in the app bar"
+  },
+  
+  "navToday": "Today",
+  "@navToday": {
+    "description": "Bottom navigation label for the Today tab"
+  },
+  
+  "navMeals": "Meals",
+  "@navMeals": {
+    "description": "Bottom navigation label for the Meals tab"
+  },
+  
+  "navCalendar": "Calendar",
+  "@navCalendar": {
+    "description": "Bottom navigation label for the Calendar tab"
+  },
+  
+  "todayTitle": "Today's Meals",
+  "@todayTitle": {
+    "description": "Title displayed on the Today screen"
+  },
+  
+  "mealHistoryTitle": "Meal History",
+  "@mealHistoryTitle": {
+    "description": "Title displayed on the meal history screen"
+  },
+  
+  "calendarTitle": "Calendar",
+  "@calendarTitle": {
+    "description": "Title displayed on the calendar screen"
+  },
+  
+  "dayDetailTitle": "Day Details",
+  "@dayDetailTitle": {
+    "description": "Title displayed on the day detail screen"
+  },
+  
+  "howWasYourDay": "How was your day?",
+  "@howWasYourDay": {
+    "description": "Question asking user to rate their day"
+  },
+  
+  "ratingBad": "Bad",
+  "@ratingBad": {
+    "description": "Label for bad day rating option"
+  },
+  
+  "ratingOkay": "Okay",
+  "@ratingOkay": {
+    "description": "Label for okay day rating option"
+  },
+  
+  "ratingGreat": "Great",
+  "@ratingGreat": {
+    "description": "Label for great day rating option"
+  },
+  
+  "ratingNotSet": "Not rated",
+  "@ratingNotSet": {
+    "description": "Text shown when no day rating has been set"
+  },
+  
+  "ratingLogged": "Day rated",
+  "@ratingLogged": {
+    "description": "Confirmation text shown after rating is saved"
+  },
+  
+  "dayRatingSubtitleToday": "Tap to rate today",
+  "@dayRatingSubtitleToday": {
+    "description": "Subtitle prompting user to rate today"
+  },
+  
+  "dayRatingSubtitleDay": "Tap to rate this day",
+  "@dayRatingSubtitleDay": {
+    "description": "Subtitle prompting user to rate a specific day"
+  },
+  
+  "dailyMetrics": "Daily Metrics",
+  "@dailyMetrics": {
+    "description": "Section title for daily metrics (water, exercise)"
+  },
+  
+  "goalMet": "Goal met",
+  "@goalMet": {
+    "description": "Text indicating a goal has been achieved"
+  },
+  
+  "waterLabel": "Water",
+  "@waterLabel": {
+    "description": "Label for water intake metric"
+  },
+  
+  "exerciseLabel": "Exercise",
+  "@exerciseLabel": {
+    "description": "Label for exercise metric"
+  },
+  
+  "waterGoal": "Goal: 2L",
+  "@waterGoal": {
+    "description": "Water intake goal label"
+  },
+  
+  "notLogged": "Not logged",
+  "@notLogged": {
+    "description": "Text shown when a metric has not been logged"
+  },
+  
+  "waterHintText": "Enter amount in ml",
+  "@waterHintText": {
+    "description": "Hint text for water input field"
+  },
+  
+  "exerciseHintText": "Enter exercise details",
+  "@exerciseHintText": {
+    "description": "Hint text for exercise input field"
+  },
+  
+  "dailyMetricsSubtitleToday": "Track your progress for today",
+  "@dailyMetricsSubtitleToday": {
+    "description": "Subtitle for today's metrics section"
+  },
+  
+  "dailyMetricsSubtitleDay": "View metrics for this day",
+  "@dailyMetricsSubtitleDay": {
+    "description": "Subtitle for a specific day's metrics section"
+  },
+  
+  "waterAmount": "{amount} ml",
+  "@waterAmount": {
+    "description": "Water amount display with value",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "1500"
+      }
+    }
+  },
+  
+  "waterUnit": "ml",
+  "@waterUnit": {
+    "description": "Unit for water measurement (milliliters)"
+  },
+  
+  "breakfast": "Breakfast",
+  "@breakfast": {
+    "description": "Label for breakfast meal slot"
+  },
+  
+  "lunch": "Lunch",
+  "@lunch": {
+    "description": "Label for lunch meal slot"
+  },
+  
+  "afternoonSnack": "Afternoon Snack",
+  "@afternoonSnack": {
+    "description": "Label for afternoon snack meal slot"
+  },
+  
+  "dinner": "Dinner",
+  "@dinner": {
+    "description": "Label for dinner meal slot"
+  },
+  
+  "camera": "Camera",
+  "@camera": {
+    "description": "Label for camera photo source option"
+  },
+  
+  "gallery": "Gallery",
+  "@gallery": {
+    "description": "Label for gallery photo source option"
+  },
+  
+  "replacePhoto": "Replace Photo",
+  "@replacePhoto": {
+    "description": "Label for replacing an existing photo"
+  },
+  
+  "deletePhoto": "Delete Photo",
+  "@deletePhoto": {
+    "description": "Label for deleting a photo"
+  },
+  
+  "imageNotFound": "Image not found",
+  "@imageNotFound": {
+    "description": "Error message when an image cannot be loaded"
+  },
+  
+  "addDescriptionHint": "Add a description...",
+  "@addDescriptionHint": {
+    "description": "Hint text for meal description input"
+  },
+  
+  "clearMeal": "Clear Meal",
+  "@clearMeal": {
+    "description": "Title for clear meal confirmation dialog"
+  },
+  
+  "clearMealConfirmation": "Are you sure you want to clear {slotName}?",
+  "@clearMealConfirmation": {
+    "description": "Confirmation message for clearing a meal slot",
+    "placeholders": {
+      "slotName": {
+        "type": "String",
+        "example": "Breakfast"
+      }
+    }
+  },
+  
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+  
+  "clear": "Clear",
+  "@clear": {
+    "description": "Clear button label to confirm clearing"
+  },
+  
+  "noMealsYet": "No meals yet",
+  "@noMealsYet": {
+    "description": "Title for empty state when no meals exist"
+  },
+  
+  "noMealsYetSubtitle": "Start by adding your first meal",
+  "@noMealsYetSubtitle": {
+    "description": "Subtitle for empty state prompting user to add meals"
+  },
+  
+  "noMealsLogged": "No meals logged",
+  "@noMealsLogged": {
+    "description": "Title shown when no meals logged for selected date"
+  },
+  
+  "noMealsLoggedSubtitle": "No meals recorded for this day",
+  "@noMealsLoggedSubtitle": {
+    "description": "Subtitle explaining no meals exist for the selected day"
+  },
+  
+  "failedToLoadMeals": "Failed to load meals",
+  "@failedToLoadMeals": {
+    "description": "Error message when meals fail to load"
+  },
+  
+  "failedToLoadCalendar": "Failed to load calendar",
+  "@failedToLoadCalendar": {
+    "description": "Error message when calendar fails to load"
+  },
+  
+  "unknownError": "An unknown error occurred",
+  "@unknownError": {
+    "description": "Generic error message for unexpected errors"
+  },
+  
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button label"
+  },
+  
+  "noDescription": "No description",
+  "@noDescription": {
+    "description": "Text shown when a meal has no description"
+  },
+  
+  "recordedAt": "Recorded at {time}",
+  "@recordedAt": {
+    "description": "Timestamp showing when a meal was recorded",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "08:30"
+      }
+    }
+  },
+  
+  "clearMealTooltip": "Clear this meal",
+  "@clearMealTooltip": {
+    "description": "Tooltip for clear meal action button"
+  },
+  
+  "waterAmountWithGoal": "{amount} / 2000 ml",
+  "@waterAmountWithGoal": {
+    "description": "Water amount display with goal comparison",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "1500"
+      }
+    }
+  },
+  
+  "waterDash": "—",
+  "@waterDash": {
+    "description": "Dash displayed when water amount is not set"
+  },
+  
+  "exerciseYes": "Yes",
+  "@exerciseYes": {
+    "description": "Label indicating exercise was completed"
+  },
+  
+  "exerciseNo": "No",
+  "@exerciseNo": {
+    "description": "Label indicating exercise was not completed"
+  },
+  
+  "exerciseDash": "—",
+  "@exerciseDash": {
+    "description": "Dash displayed when exercise status is not set"
+  },
+  
+  "goalMetSuffix": "met",
+  "@goalMetSuffix": {
+    "description": "Suffix indicating goal has been met"
+  },
+  
+  "today": "Today",
+  "@today": {
+    "description": "Label for today's date"
+  },
+  
+  "yesterday": "Yesterday",
+  "@yesterday": {
+    "description": "Label for yesterday's date"
+  },
+  
+  "jumpToToday": "Jump to Today",
+  "@jumpToToday": {
+    "description": "Button to navigate to today's date"
+  },
+  
+  "errorLoadMeals": "Failed to load meals",
+  "@errorLoadMeals": {
+    "description": "Error message when loading meals fails"
+  },
+  
+  "errorLoadDayRating": "Failed to load day rating",
+  "@errorLoadDayRating": {
+    "description": "Error message when loading day rating fails"
+  },
+  
+  "errorLoadDailyMetrics": "Failed to load daily metrics",
+  "@errorLoadDailyMetrics": {
+    "description": "Error message when loading daily metrics fails"
+  },
+  
+  "errorInvalidDayRating": "Invalid day rating selected",
+  "@errorInvalidDayRating": {
+    "description": "Error message when an invalid day rating is selected"
+  },
+  
+  "errorSaveDayRating": "Failed to save day rating",
+  "@errorSaveDayRating": {
+    "description": "Error message when saving day rating fails"
+  },
+  
+  "errorSaveImage": "Failed to save image",
+  "@errorSaveImage": {
+    "description": "Error message when saving an image fails"
+  },
+  
+  "errorCapturePhoto": "Failed to capture photo",
+  "@errorCapturePhoto": {
+    "description": "Error message when capturing a photo fails"
+  },
+  
+  "errorPickImage": "Failed to pick image",
+  "@errorPickImage": {
+    "description": "Error message when selecting an image from gallery fails"
+  },
+  
+  "errorSaveMeal": "Failed to save meal",
+  "@errorSaveMeal": {
+    "description": "Error message when saving a meal fails"
+  },
+  
+  "errorDeletePhoto": "Failed to delete photo",
+  "@errorDeletePhoto": {
+    "description": "Error message when deleting a photo fails"
+  },
+  
+  "errorClearMeal": "Failed to clear meal",
+  "@errorClearMeal": {
+    "description": "Error message when clearing a meal fails"
+  },
+  
+  "errorSaveDailyMetrics": "Failed to save daily metrics",
+  "@errorSaveDailyMetrics": {
+    "description": "Error message when saving daily metrics fails"
+  },
+  
+  "errorLoadCalendar": "Failed to load calendar data",
+  "@errorLoadCalendar": {
+    "description": "Error message when loading calendar data fails"
+  }
+}

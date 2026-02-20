@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../utils/date_formatter.dart';
+import '../../utils/l10n_helper.dart';
 import '../providers/meals_provider.dart';
 import '../widgets/meal_history_card.dart';
 
@@ -40,7 +42,7 @@ class _MealsScreenState extends State<MealsScreen>
             _scrollController.position.maxScrollExtent - 200 &&
         !_provider.isLoading &&
         _provider.hasMore) {
-      _provider.loadMoreMeals();
+      _provider.loadMoreMeals(context.l10n);
     }
   }
 
@@ -59,7 +61,7 @@ class _MealsScreenState extends State<MealsScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meal History'),
+        title: Text(context.l10n.mealHistoryTitle),
         centerTitle: true,
         actions: [
           if (_provider.isLoading && _provider.meals.isEmpty)
@@ -78,23 +80,27 @@ class _MealsScreenState extends State<MealsScreen>
             ),
         ],
       ),
-      body: _buildBody(theme, colorScheme),
+      body: _buildBody(theme, colorScheme, context),
     );
   }
 
-  Widget _buildBody(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildBody(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    BuildContext context,
+  ) {
     if (_provider.error != null && _provider.meals.isEmpty) {
-      return _buildErrorState(colorScheme);
+      return _buildErrorState(colorScheme, context);
     }
 
     if (_provider.meals.isEmpty && !_provider.isLoading) {
-      return _buildEmptyState(theme, colorScheme);
+      return _buildEmptyState(theme, colorScheme, context);
     }
 
-    return _buildMealList(theme, colorScheme);
+    return _buildMealList(theme, colorScheme, context);
   }
 
-  Widget _buildErrorState(ColorScheme colorScheme) {
+  Widget _buildErrorState(ColorScheme colorScheme, BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -102,16 +108,16 @@ class _MealsScreenState extends State<MealsScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error_outline, size: 48, color: colorScheme.error),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
-              'Failed to load meals',
+              context.l10n.failedToLoadMeals,
               style: TextStyle(
                 color: colorScheme.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               _provider.error!,
               textAlign: TextAlign.center,
@@ -120,11 +126,11 @@ class _MealsScreenState extends State<MealsScreen>
                 fontSize: 14,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _provider.refresh,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              icon: Icon(Icons.refresh),
+              label: Text(context.l10n.retry),
             ),
           ],
         ),
@@ -132,7 +138,11 @@ class _MealsScreenState extends State<MealsScreen>
     );
   }
 
-  Widget _buildEmptyState(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildEmptyState(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    BuildContext context,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -144,17 +154,17 @@ class _MealsScreenState extends State<MealsScreen>
               size: 64,
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             Text(
-              'No meals yet',
+              context.l10n.noMealsYet,
               style: theme.textTheme.titleLarge?.copyWith(
                 color: colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
-              'Start tracking your meals in the Today tab',
+              context.l10n.noMealsYetSubtitle,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
@@ -166,8 +176,12 @@ class _MealsScreenState extends State<MealsScreen>
     );
   }
 
-  Widget _buildMealList(ThemeData theme, ColorScheme colorScheme) {
-    final feedItems = _buildFeedItems(_provider.meals);
+  Widget _buildMealList(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    BuildContext context,
+  ) {
+    final feedItems = _buildFeedItems(_provider.meals, context);
 
     return RefreshIndicator(
       onRefresh: _provider.refresh,
@@ -177,7 +191,7 @@ class _MealsScreenState extends State<MealsScreen>
         itemCount:
             feedItems.length +
             (_provider.hasMore || _provider.isLoading ? 1 : 0),
-        itemBuilder: (context, index) {
+        itemBuilder: (listContext, index) {
           if (index == feedItems.length) {
             return _buildLoadingFooter(colorScheme);
           }
@@ -191,7 +205,12 @@ class _MealsScreenState extends State<MealsScreen>
           }
           if (item.isMetrics) {
             return _buildStaggeredItem(
-              _buildMetricsSummary(theme, colorScheme, item.metricsDate!),
+              _buildMetricsSummary(
+                theme,
+                colorScheme,
+                item.metricsDate!,
+                context,
+              ),
               index,
             );
           }
@@ -238,6 +257,7 @@ class _MealsScreenState extends State<MealsScreen>
     ThemeData theme,
     ColorScheme colorScheme,
     DateTime date,
+    BuildContext context,
   ) {
     final metrics = _provider.metricsForDate(date);
     if (metrics == null) {
@@ -247,7 +267,9 @@ class _MealsScreenState extends State<MealsScreen>
     final exerciseDone = metrics.exerciseDone == true;
     final note = metrics.exerciseNote;
     final isGoalMet = (water ?? 0) >= 1.5;
-    final exerciseLabel = exerciseDone ? 'Yes' : 'No';
+    final exerciseLabel = exerciseDone
+        ? context.l10n.exerciseYes
+        : context.l10n.exerciseNo;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
@@ -267,18 +289,18 @@ class _MealsScreenState extends State<MealsScreen>
               size: 16,
               color: colorScheme.primary,
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: 6),
             Text(
               water == null
-                  ? 'Water: —'
-                  : 'Water: ${_formatWater(water)} L'
-                        '${isGoalMet ? ' (goal met)' : ''}',
+                  ? '${context.l10n.waterLabel}: ${context.l10n.waterDash}'
+                  : context.l10n.waterAmountWithGoal(_formatWater(water)) +
+                        (isGoalMet ? ' (${context.l10n.goalMetSuffix})' : ''),
               style: theme.textTheme.labelMedium?.copyWith(
                 color: colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Container(
               width: 4,
               height: 4,
@@ -287,16 +309,16 @@ class _MealsScreenState extends State<MealsScreen>
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             Text(
-              'Exercise: $exerciseLabel',
+              '${context.l10n.exerciseLabel}: $exerciseLabel',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
             if (note != null && note.trim().isNotEmpty) ...[
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Container(
                 width: 4,
                 height: 4,
@@ -305,7 +327,7 @@ class _MealsScreenState extends State<MealsScreen>
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Text(
                   note,
@@ -317,7 +339,7 @@ class _MealsScreenState extends State<MealsScreen>
                 ),
               ),
             ] else
-              const Spacer(),
+              Spacer(),
           ],
         ),
       ),
@@ -362,7 +384,7 @@ class _MealsScreenState extends State<MealsScreen>
     );
   }
 
-  List<_FeedItem> _buildFeedItems(List<Meal> meals) {
+  List<_FeedItem> _buildFeedItems(List<Meal> meals, BuildContext context) {
     if (meals.isEmpty) return [];
 
     final items = <_FeedItem>[];
@@ -372,7 +394,9 @@ class _MealsScreenState extends State<MealsScreen>
       if (currentDate == null || !_isSameDay(currentDate, meal.date)) {
         currentDate = meal.date;
         items.add(
-          _FeedItem.separator(_provider.getFormattedDateGroup(meal.date)),
+          _FeedItem.separator(
+            _provider.getFormattedDateGroup(meal.date, context.l10n),
+          ),
         );
         items.add(_FeedItem.metrics(meal.date));
       }
@@ -433,19 +457,21 @@ class _MealPreviewSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            meal.slot.displayName,
+            meal.slot.localizedName(context.l10n),
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           Text(
-            'Recorded at ${_formatDateTime(meal.date)}',
+            context.l10n.recordedAt(
+              context.dateFormatter.formatTime(meal.date),
+            ),
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           if (meal.hasImage)
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
@@ -468,7 +494,7 @@ class _MealPreviewSheet extends StatelessWidget {
               child: Text(
                 meal.description?.isNotEmpty == true
                     ? meal.description!
-                    : 'No description',
+                    : context.l10n.noDescription,
                 maxLines: 6,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyLarge?.copyWith(
@@ -482,7 +508,7 @@ class _MealPreviewSheet extends StatelessWidget {
                 ),
               ),
             ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           if (meal.hasImage)
             if (meal.description?.isNotEmpty == true)
               Text(
@@ -494,7 +520,7 @@ class _MealPreviewSheet extends StatelessWidget {
               )
             else
               Text(
-                'No description',
+                context.l10n.noDescription,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                   fontStyle: FontStyle.italic,
@@ -503,12 +529,6 @@ class _MealPreviewSheet extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatDateTime(DateTime date) {
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 }
 

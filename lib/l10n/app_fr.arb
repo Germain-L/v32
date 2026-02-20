@@ -1,0 +1,402 @@
+{
+  "@@locale": "fr",
+  
+  "appTitle": "Régime",
+  "@appTitle": {
+    "description": "Titre de l'application affiché dans la barre d'application"
+  },
+  
+  "navToday": "Aujourd'hui",
+  "@navToday": {
+    "description": "Libellé de navigation pour l'onglet Aujourd'hui"
+  },
+  
+  "navMeals": "Repas",
+  "@navMeals": {
+    "description": "Libellé de navigation pour l'onglet Repas"
+  },
+  
+  "navCalendar": "Calendrier",
+  "@navCalendar": {
+    "description": "Libellé de navigation pour l'onglet Calendrier"
+  },
+  
+  "todayTitle": "Repas du jour",
+  "@todayTitle": {
+    "description": "Titre affiché sur l'écran Aujourd'hui"
+  },
+  
+  "mealHistoryTitle": "Historique des repas",
+  "@mealHistoryTitle": {
+    "description": "Titre affiché sur l'écran d'historique des repas"
+  },
+  
+  "calendarTitle": "Calendrier",
+  "@calendarTitle": {
+    "description": "Titre affiché sur l'écran du calendrier"
+  },
+  
+  "dayDetailTitle": "Détails du jour",
+  "@dayDetailTitle": {
+    "description": "Titre affiché sur l'écran des détails du jour"
+  },
+  
+  "howWasYourDay": "Comment s'est passée votre journée ?",
+  "@howWasYourDay": {
+    "description": "Question demandant à l'utilisateur d'évaluer sa journée"
+  },
+  
+  "ratingBad": "Mauvaise",
+  "@ratingBad": {
+    "description": "Libellé pour l'option d'évaluation mauvaise journée"
+  },
+  
+  "ratingOkay": "Correcte",
+  "@ratingOkay": {
+    "description": "Libellé pour l'option d'évaluation journée correcte"
+  },
+  
+  "ratingGreat": "Excellente",
+  "@ratingGreat": {
+    "description": "Libellé pour l'option d'évaluation excellente journée"
+  },
+  
+  "ratingNotSet": "Non évaluée",
+  "@ratingNotSet": {
+    "description": "Texte affiché lorsque aucune évaluation de journée n'a été définie"
+  },
+  
+  "ratingLogged": "Journée évaluée",
+  "@ratingLogged": {
+    "description": "Texte de confirmation affiché après l'enregistrement de l'évaluation"
+  },
+  
+  "dayRatingSubtitleToday": "Appuyez pour évaluer aujourd'hui",
+  "@dayRatingSubtitleToday": {
+    "description": "Sous-titre invitant l'utilisateur à évaluer aujourd'hui"
+  },
+  
+  "dayRatingSubtitleDay": "Appuyez pour évaluer ce jour",
+  "@dayRatingSubtitleDay": {
+    "description": "Sous-titre invitant l'utilisateur à évaluer un jour spécifique"
+  },
+  
+  "dailyMetrics": "Métriques quotidiennes",
+  "@dailyMetrics": {
+    "description": "Titre de section pour les métriques quotidiennes (eau, exercice)"
+  },
+  
+  "goalMet": "Objectif atteint",
+  "@goalMet": {
+    "description": "Texte indiquant qu'un objectif a été atteint"
+  },
+  
+  "waterLabel": "Eau",
+  "@waterLabel": {
+    "description": "Libellé pour la métrique d'hydratation"
+  },
+  
+  "exerciseLabel": "Exercice",
+  "@exerciseLabel": {
+    "description": "Libellé pour la métrique d'exercice"
+  },
+  
+  "waterGoal": "Objectif : 2L",
+  "@waterGoal": {
+    "description": "Libellé de l'objectif d'hydratation"
+  },
+  
+  "notLogged": "Non enregistré",
+  "@notLogged": {
+    "description": "Texte affiché lorsqu'une métrique n'a pas été enregistrée"
+  },
+  
+  "waterHintText": "Saisissez la quantité en ml",
+  "@waterHintText": {
+    "description": "Texte d'indication pour le champ de saisie d'eau"
+  },
+  
+  "exerciseHintText": "Saisissez les détails de l'exercice",
+  "@exerciseHintText": {
+    "description": "Texte d'indication pour le champ de saisie d'exercice"
+  },
+  
+  "dailyMetricsSubtitleToday": "Suivez vos progrès pour aujourd'hui",
+  "@dailyMetricsSubtitleToday": {
+    "description": "Sous-titre pour la section des métriques d'aujourd'hui"
+  },
+  
+  "dailyMetricsSubtitleDay": "Consultez les métriques pour ce jour",
+  "@dailyMetricsSubtitleDay": {
+    "description": "Sous-titre pour la section des métriques d'un jour spécifique"
+  },
+  
+  "waterAmount": "{amount} ml",
+  "@waterAmount": {
+    "description": "Affichage de la quantité d'eau avec valeur",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "1500"
+      }
+    }
+  },
+  
+  "waterUnit": "ml",
+  "@waterUnit": {
+    "description": "Unité de mesure de l'eau (millilitres)"
+  },
+  
+  "breakfast": "Petit-déjeuner",
+  "@breakfast": {
+    "description": "Libellé pour le créneau repas du petit-déjeuner"
+  },
+  
+  "lunch": "Déjeuner",
+  "@lunch": {
+    "description": "Libellé pour le créneau repas du déjeuner"
+  },
+  
+  "afternoonSnack": "Goûter",
+  "@afternoonSnack": {
+    "description": "Libellé pour le créneau repas du goûter"
+  },
+  
+  "dinner": "Dîner",
+  "@dinner": {
+    "description": "Libellé pour le créneau repas du dîner"
+  },
+  
+  "camera": "Appareil photo",
+  "@camera": {
+    "description": "Libellé pour l'option de source photo appareil photo"
+  },
+  
+  "gallery": "Galerie",
+  "@gallery": {
+    "description": "Libellé pour l'option de source photo galerie"
+  },
+  
+  "replacePhoto": "Remplacer la photo",
+  "@replacePhoto": {
+    "description": "Libellé pour remplacer une photo existante"
+  },
+  
+  "deletePhoto": "Supprimer la photo",
+  "@deletePhoto": {
+    "description": "Libellé pour supprimer une photo"
+  },
+  
+  "imageNotFound": "Image introuvable",
+  "@imageNotFound": {
+    "description": "Message d'erreur lorsqu'une image ne peut pas être chargée"
+  },
+  
+  "addDescriptionHint": "Ajoutez une description...",
+  "@addDescriptionHint": {
+    "description": "Texte d'indication pour la saisie de description de repas"
+  },
+  
+  "clearMeal": "Effacer le repas",
+  "@clearMeal": {
+    "description": "Titre de la boîte de dialogue de confirmation d'effacement"
+  },
+  
+  "clearMealConfirmation": "Êtes-vous sûr de vouloir effacer {slotName} ?",
+  "@clearMealConfirmation": {
+    "description": "Message de confirmation pour effacer un créneau repas",
+    "placeholders": {
+      "slotName": {
+        "type": "String",
+        "example": "Petit-déjeuner"
+      }
+    }
+  },
+  
+  "cancel": "Annuler",
+  "@cancel": {
+    "description": "Libellé du bouton Annuler"
+  },
+  
+  "clear": "Effacer",
+  "@clear": {
+    "description": "Libellé du bouton Effacer pour confirmer"
+  },
+  
+  "noMealsYet": "Aucun repas encore",
+  "@noMealsYet": {
+    "description": "Titre pour l'état vide lorsqu'aucun repas n'existe"
+  },
+  
+  "noMealsYetSubtitle": "Commencez par ajouter votre premier repas",
+  "@noMealsYetSubtitle": {
+    "description": "Sous-titre pour l'état vide invitant l'utilisateur à ajouter des repas"
+  },
+  
+  "noMealsLogged": "Aucun repas enregistré",
+  "@noMealsLogged": {
+    "description": "Titre affiché lorsqu'aucun repas n'est enregistré pour la date sélectionnée"
+  },
+  
+  "noMealsLoggedSubtitle": "Aucun repas enregistré pour ce jour",
+  "@noMealsLoggedSubtitle": {
+    "description": "Sous-titre expliquant qu'aucun repas n'existe pour le jour sélectionné"
+  },
+  
+  "failedToLoadMeals": "Échec du chargement des repas",
+  "@failedToLoadMeals": {
+    "description": "Message d'erreur lorsque le chargement des repas échoue"
+  },
+  
+  "failedToLoadCalendar": "Échec du chargement du calendrier",
+  "@failedToLoadCalendar": {
+    "description": "Message d'erreur lorsque le chargement du calendrier échoue"
+  },
+  
+  "unknownError": "Une erreur inconnue s'est produite",
+  "@unknownError": {
+    "description": "Message d'erreur générique pour les erreurs inattendues"
+  },
+  
+  "retry": "Réessayer",
+  "@retry": {
+    "description": "Libellé du bouton Réessayer"
+  },
+  
+  "noDescription": "Aucune description",
+  "@noDescription": {
+    "description": "Texte affiché lorsqu'un repas n'a pas de description"
+  },
+  
+  "recordedAt": "Enregistré à {time}",
+  "@recordedAt": {
+    "description": "Horodatage indiquant quand un repas a été enregistré",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "08:30"
+      }
+    }
+  },
+  
+  "clearMealTooltip": "Effacer ce repas",
+  "@clearMealTooltip": {
+    "description": "Info-bulle pour le bouton d'action d'effacement de repas"
+  },
+  
+  "waterAmountWithGoal": "{amount} / 2000 ml",
+  "@waterAmountWithGoal": {
+    "description": "Affichage de la quantité d'eau avec comparaison à l'objectif",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "1500"
+      }
+    }
+  },
+  
+  "waterDash": "—",
+  "@waterDash": {
+    "description": "Tiret affiché lorsque la quantité d'eau n'est pas définie"
+  },
+  
+  "exerciseYes": "Oui",
+  "@exerciseYes": {
+    "description": "Libellé indiquant que l'exercice a été effectué"
+  },
+  
+  "exerciseNo": "Non",
+  "@exerciseNo": {
+    "description": "Libellé indiquant que l'exercice n'a pas été effectué"
+  },
+  
+  "exerciseDash": "—",
+  "@exerciseDash": {
+    "description": "Tiret affiché lorsque le statut d'exercice n'est pas défini"
+  },
+  
+  "goalMetSuffix": "atteint",
+  "@goalMetSuffix": {
+    "description": "Suffixe indiquant que l'objectif a été atteint"
+  },
+  
+  "today": "Aujourd'hui",
+  "@today": {
+    "description": "Libellé pour la date d'aujourd'hui"
+  },
+  
+  "yesterday": "Hier",
+  "@yesterday": {
+    "description": "Libellé pour la date d'hier"
+  },
+  
+  "jumpToToday": "Aller à aujourd'hui",
+  "@jumpToToday": {
+    "description": "Bouton pour naviguer vers la date d'aujourd'hui"
+  },
+  
+  "errorLoadMeals": "Échec du chargement des repas",
+  "@errorLoadMeals": {
+    "description": "Message d'erreur lorsque le chargement des repas échoue"
+  },
+  
+  "errorLoadDayRating": "Échec du chargement de l'évaluation de la journée",
+  "@errorLoadDayRating": {
+    "description": "Message d'erreur lorsque le chargement de l'évaluation échoue"
+  },
+  
+  "errorLoadDailyMetrics": "Échec du chargement des métriques quotidiennes",
+  "@errorLoadDailyMetrics": {
+    "description": "Message d'erreur lorsque le chargement des métriques échoue"
+  },
+  
+  "errorInvalidDayRating": "Évaluation de journée invalide sélectionnée",
+  "@errorInvalidDayRating": {
+    "description": "Message d'erreur lorsqu'une évaluation invalide est sélectionnée"
+  },
+  
+  "errorSaveDayRating": "Échec de l'enregistrement de l'évaluation",
+  "@errorSaveDayRating": {
+    "description": "Message d'erreur lorsque l'enregistrement de l'évaluation échoue"
+  },
+  
+  "errorSaveImage": "Échec de l'enregistrement de l'image",
+  "@errorSaveImage": {
+    "description": "Message d'erreur lorsque l'enregistrement d'une image échoue"
+  },
+  
+  "errorCapturePhoto": "Échec de la capture de la photo",
+  "@errorCapturePhoto": {
+    "description": "Message d'erreur lorsque la capture d'une photo échoue"
+  },
+  
+  "errorPickImage": "Échec de la sélection de l'image",
+  "@errorPickImage": {
+    "description": "Message d'erreur lorsque la sélection d'une image depuis la galerie échoue"
+  },
+  
+  "errorSaveMeal": "Échec de l'enregistrement du repas",
+  "@errorSaveMeal": {
+    "description": "Message d'erreur lorsque l'enregistrement d'un repas échoue"
+  },
+  
+  "errorDeletePhoto": "Échec de la suppression de la photo",
+  "@errorDeletePhoto": {
+    "description": "Message d'erreur lorsque la suppression d'une photo échoue"
+  },
+  
+  "errorClearMeal": "Échec de l'effacement du repas",
+  "@errorClearMeal": {
+    "description": "Message d'erreur lorsque l'effacement d'un repas échoue"
+  },
+  
+  "errorSaveDailyMetrics": "Échec de l'enregistrement des métriques",
+  "@errorSaveDailyMetrics": {
+    "description": "Message d'erreur lorsque l'enregistrement des métriques échoue"
+  },
+  
+  "errorLoadCalendar": "Échec du chargement des données du calendrier",
+  "@errorLoadCalendar": {
+    "description": "Message d'erreur lorsque le chargement des données du calendrier échoue"
+  }
+}

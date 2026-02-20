@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
+import '../../utils/l10n_helper.dart';
+import '../../utils/date_formatter.dart';
 
 class MealHistoryCard extends StatelessWidget {
   final Meal meal;
@@ -24,7 +26,7 @@ class MealHistoryCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(theme, colorScheme),
+              _buildHeader(context, theme, colorScheme),
               const SizedBox(height: 8),
               if (meal.hasImage && meal.imagePath != null) ...[
                 _buildImagePreview(context),
@@ -41,7 +43,11 @@ class MealHistoryCard extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ThemeData theme, ColorScheme colorScheme) {
+  Widget _buildHeader(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme colorScheme,
+  ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
       child: Row(
@@ -49,7 +55,7 @@ class MealHistoryCard extends StatelessWidget {
           Icon(_getSlotIcon(meal.slot), size: 18, color: colorScheme.primary),
           const SizedBox(width: 8),
           Text(
-            meal.slot.displayName,
+            meal.slot.localizedName(context.l10n),
             style: theme.textTheme.titleSmall?.copyWith(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.w700,
@@ -57,7 +63,7 @@ class MealHistoryCard extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            _formatTime(meal.date),
+            context.dateFormatter.formatTime(meal.date),
             style: theme.textTheme.labelSmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
@@ -110,8 +116,6 @@ class MealHistoryCard extends StatelessWidget {
   }
 
   Widget _buildCaption(ThemeData theme, ColorScheme colorScheme) {
-    final hasCaption = meal.description?.isNotEmpty == true;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
       child: Text(
@@ -154,11 +158,5 @@ class MealHistoryCard extends StatelessWidget {
       MealSlot.afternoonSnack => Icons.coffee_outlined,
       MealSlot.dinner => Icons.nights_stay_outlined,
     };
-  }
-
-  String _formatTime(DateTime date) {
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 }

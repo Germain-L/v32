@@ -8,6 +8,7 @@ import '../../data/repositories/daily_metrics_repository.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../../data/services/image_storage_service.dart';
+import '../../gen_l10n/app_localizations.dart';
 
 class DayDetailProvider extends ChangeNotifier {
   final MealRepository _repository;
@@ -69,7 +70,7 @@ class DayDetailProvider extends ChangeNotifier {
   String get exerciseNote => _exerciseNote;
   bool get isWaterGoalMet => (_waterLiters ?? 0) >= 1.5;
 
-  Future<void> loadMealsForDate() async {
+  Future<void> loadMealsForDate([AppLocalizations? l10n]) async {
     try {
       final meals = await _repository.getMealsForDate(_date);
 
@@ -80,22 +81,26 @@ class DayDetailProvider extends ChangeNotifier {
 
       _notifyIfMounted();
     } catch (e) {
-      _error = 'Failed to load meals: $e';
+      _error = l10n != null
+          ? '${l10n.errorLoadMeals}: $e'
+          : 'Failed to load meals: $e';
       _notifyIfMounted();
     }
   }
 
-  Future<void> loadDayRating() async {
+  Future<void> loadDayRating([AppLocalizations? l10n]) async {
     try {
       _dayRating = await _ratingRepository.getRatingForDate(_date);
       _notifyIfMounted();
     } catch (e) {
-      _error = 'Failed to load day rating: $e';
+      _error = l10n != null
+          ? '${l10n.errorLoadDayRating}: $e'
+          : 'Failed to load day rating: $e';
       _notifyIfMounted();
     }
   }
 
-  Future<void> loadDailyMetrics() async {
+  Future<void> loadDailyMetrics([AppLocalizations? l10n]) async {
     try {
       final metrics = await _metricsRepository.getMetricsForDate(_date);
       _waterLiters = metrics?.waterLiters;
@@ -103,7 +108,9 @@ class DayDetailProvider extends ChangeNotifier {
       _exerciseNote = metrics?.exerciseNote ?? '';
       _notifyIfMounted();
     } catch (e) {
-      _error = 'Failed to load daily metrics: $e';
+      _error = l10n != null
+          ? '${l10n.errorLoadDailyMetrics}: $e'
+          : 'Failed to load daily metrics: $e';
       _notifyIfMounted();
     }
   }
@@ -129,10 +136,12 @@ class DayDetailProvider extends ChangeNotifier {
     _notifyIfMounted();
   }
 
-  Future<void> updateDayRating(int score) async {
+  Future<void> updateDayRating(int score, [AppLocalizations? l10n]) async {
     try {
       if (score < 1 || score > 3) {
-        _error = 'Invalid day rating';
+        _error = l10n != null
+            ? l10n.errorInvalidDayRating
+            : 'Invalid day rating';
         _notifyIfMounted();
         return;
       }
@@ -140,12 +149,14 @@ class DayDetailProvider extends ChangeNotifier {
       _notifyIfMounted();
       await _ratingRepository.saveRating(_date, score);
     } catch (e) {
-      _error = 'Failed to save day rating: $e';
+      _error = l10n != null
+          ? '${l10n.errorSaveDayRating}: $e'
+          : 'Failed to save day rating: $e';
       _notifyIfMounted();
     }
   }
 
-  Future<void> capturePhoto(MealSlot slot) async {
+  Future<void> capturePhoto(MealSlot slot, [AppLocalizations? l10n]) async {
     _setLoading(slot, true);
 
     try {
@@ -165,21 +176,23 @@ class DayDetailProvider extends ChangeNotifier {
       );
 
       if (savedPath == null) {
-        _error = 'Failed to save image';
+        _error = l10n != null ? l10n.errorSaveImage : 'Failed to save image';
         _setLoading(slot, false);
         return;
       }
 
       await _saveMealWithImage(slot, savedPath);
     } catch (e) {
-      _error = 'Failed to capture photo: $e';
+      _error = l10n != null
+          ? '${l10n.errorCapturePhoto}: $e'
+          : 'Failed to capture photo: $e';
       _notifyIfMounted();
     } finally {
       _setLoading(slot, false);
     }
   }
 
-  Future<void> pickImage(MealSlot slot) async {
+  Future<void> pickImage(MealSlot slot, [AppLocalizations? l10n]) async {
     _setLoading(slot, true);
 
     try {
@@ -199,14 +212,16 @@ class DayDetailProvider extends ChangeNotifier {
       );
 
       if (savedPath == null) {
-        _error = 'Failed to save image';
+        _error = l10n != null ? l10n.errorSaveImage : 'Failed to save image';
         _setLoading(slot, false);
         return;
       }
 
       await _saveMealWithImage(slot, savedPath);
     } catch (e) {
-      _error = 'Failed to pick image: $e';
+      _error = l10n != null
+          ? '${l10n.errorPickImage}: $e'
+          : 'Failed to pick image: $e';
       _notifyIfMounted();
     } finally {
       _setLoading(slot, false);
@@ -256,7 +271,7 @@ class DayDetailProvider extends ChangeNotifier {
     _notifyIfMounted();
   }
 
-  Future<void> _saveDescription(MealSlot slot) async {
+  Future<void> _saveDescription(MealSlot slot, [AppLocalizations? l10n]) async {
     final description = _descriptions[slot] ?? '';
 
     if (_hasPendingDescriptionSave[slot] != true) {
@@ -325,7 +340,9 @@ class DayDetailProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      _error = 'Failed to save meal: $e';
+      _error = l10n != null
+          ? '${l10n.errorSaveMeal}: $e'
+          : 'Failed to save meal: $e';
       _notifyIfMounted();
     } finally {
       shouldRerun = _hasPendingDescriptionSave[slot] == true;
@@ -358,7 +375,7 @@ class DayDetailProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> deletePhoto(MealSlot slot) async {
+  Future<void> deletePhoto(MealSlot slot, [AppLocalizations? l10n]) async {
     final meal = _meals[slot];
     if (meal == null || meal.imagePath == null) return;
 
@@ -369,12 +386,14 @@ class DayDetailProvider extends ChangeNotifier {
       _meals[slot] = savedMeal;
       _notifyIfMounted();
     } catch (e) {
-      _error = 'Failed to delete photo: $e';
+      _error = l10n != null
+          ? '${l10n.errorDeletePhoto}: $e'
+          : 'Failed to delete photo: $e';
       _notifyIfMounted();
     }
   }
 
-  Future<void> clearMeal(MealSlot slot) async {
+  Future<void> clearMeal(MealSlot slot, [AppLocalizations? l10n]) async {
     final meal = _meals[slot];
     if (meal == null && _hasPendingDescriptionSave[slot] != true) {
       return;
@@ -396,7 +415,9 @@ class DayDetailProvider extends ChangeNotifier {
           await ImageStorageService.deleteImage(meal.imagePath);
         }
       } catch (e) {
-        _error = 'Failed to clear meal: $e';
+        _error = l10n != null
+            ? '${l10n.errorClearMeal}: $e'
+            : 'Failed to clear meal: $e';
         _notifyIfMounted();
       }
     }
@@ -429,7 +450,7 @@ class DayDetailProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveDailyMetrics() async {
+  Future<void> _saveDailyMetrics([AppLocalizations? l10n]) async {
     if (!_hasPendingMetricsSave) return;
     if (_isSavingMetrics) {
       _hasPendingMetricsSave = true;
@@ -461,7 +482,9 @@ class DayDetailProvider extends ChangeNotifier {
         );
       }
     } catch (e) {
-      _error = 'Failed to save daily metrics: $e';
+      _error = l10n != null
+          ? '${l10n.errorSaveDailyMetrics}: $e'
+          : 'Failed to save daily metrics: $e';
       _notifyIfMounted();
     } finally {
       _isSavingMetrics = false;

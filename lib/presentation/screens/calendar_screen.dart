@@ -1,10 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../gen_l10n/app_localizations.dart';
+import '../../utils/date_formatter.dart';
+import '../../utils/l10n_helper.dart';
 import '../providers/calendar_provider.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -40,9 +44,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final l10n = context.l10n;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendar'),
+        title: Text(l10n.calendarTitle),
         centerTitle: true,
         actions: [
           if (_provider.isLoadingMonth || _provider.isLoadingDay)
@@ -85,7 +91,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           ),
           Expanded(
             child: Text(
-              _formatMonthYear(_provider.focusedMonth),
+              context.dateFormatter.formatMonthYear(_provider.focusedMonth),
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
@@ -104,7 +110,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildWeekdayRow(ThemeData theme, ColorScheme colorScheme) {
-    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    // Generate locale-aware weekday labels (Mon, Tue, etc.)
+    final now = DateTime.now();
+    final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final labels = List.generate(7, (index) {
+      final day = firstDayOfWeek.add(Duration(days: index));
+      return DateFormat.E(context.dateFormatter.locale).format(day);
+    });
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Row(
@@ -312,7 +324,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              _formatSelectedDate(_provider.selectedDate),
+              context.dateFormatter.formatFullDate(_provider.selectedDate),
               style: theme.textTheme.titleSmall?.copyWith(
                 color: colorScheme.primary,
                 fontWeight: FontWeight.w700,
@@ -334,11 +346,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     ColorScheme colorScheme,
     DailyMetrics? metrics,
   ) {
+    final l10n = context.l10n;
     final water = metrics?.waterLiters;
     final exerciseDone = metrics?.exerciseDone == true;
     final note = metrics?.exerciseNote;
     final isGoalMet = (water ?? 0) >= 1.5;
-    final exerciseLabel = metrics == null ? '—' : (exerciseDone ? 'Yes' : 'No');
+    final exerciseLabel = metrics == null
+        ? l10n.exerciseDash
+        : (exerciseDone ? l10n.exerciseYes : l10n.exerciseNo);
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -363,7 +378,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Daily Metrics',
+                  l10n.dailyMetrics,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.w600,
@@ -372,7 +387,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 const Spacer(),
                 if (isGoalMet)
                   Text(
-                    'Goal met',
+                    l10n.goalMet,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colorScheme.tertiary,
                       fontWeight: FontWeight.w600,
@@ -383,16 +398,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
             const SizedBox(height: 8),
             Text(
               water == null
-                  ? 'Water: —'
-                  : 'Water: ${_formatWater(water)} L'
-                        '${isGoalMet ? ' (goal met)' : ''}',
+                  ? '${l10n.waterLabel}: ${l10n.waterDash}'
+                  : '${l10n.waterLabel}: ${_formatWater(water)} ${l10n.waterUnit}'
+                        '${isGoalMet ? ' (${l10n.goalMet})' : ''}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              'Exercise: $exerciseLabel',
+              '${l10n.exerciseLabel}: $exerciseLabel',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurface,
               ),
@@ -413,6 +428,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildMealRow(ThemeData theme, ColorScheme colorScheme, Meal meal) {
+    final l10n = context.l10n;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       elevation: 0,
@@ -442,7 +458,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        meal.slot.displayName,
+                        _getSlotLabel(meal.slot, l10n),
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -450,7 +466,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                       const Spacer(),
                       Text(
-                        _formatTime(meal.date),
+                        context.dateFormatter.formatTime(meal.date),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -469,7 +485,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     )
                   else
                     Text(
-                      'No description',
+                      l10n.noDescription,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant.withValues(
                           alpha: 0.6,
@@ -524,6 +540,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildEmptyState(ThemeData theme, ColorScheme colorScheme) {
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -537,7 +554,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No meals logged',
+              l10n.noMealsLogged,
               style: theme.textTheme.titleLarge?.copyWith(
                 color: colorScheme.onSurface,
                 fontWeight: FontWeight.w600,
@@ -545,7 +562,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Select another date or add meals from Today tab',
+              l10n.noMealsLoggedSubtitle,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
@@ -558,6 +575,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildErrorState(ColorScheme colorScheme) {
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -567,7 +585,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Icon(Icons.error_outline, size: 48, color: colorScheme.error),
             const SizedBox(height: 16),
             Text(
-              'Failed to load calendar',
+              l10n.failedToLoadCalendar,
               style: TextStyle(
                 color: colorScheme.onSurface,
                 fontSize: 18,
@@ -576,7 +594,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              _provider.error ?? 'Unknown error',
+              _provider.error ?? l10n.unknownError,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
@@ -587,7 +605,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             FilledButton.icon(
               onPressed: _provider.refresh,
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(l10n.retry),
             ),
           ],
         ),
@@ -619,65 +637,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  String _formatMonthYear(DateTime date) {
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${months[date.month - 1]} ${date.year}';
-  }
-
-  String _formatSelectedDate(DateTime date) {
-    final weekdays = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
-  }
-
   String _formatRouteDate(DateTime date) {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
     return '${date.year}-$month-$day';
   }
 
-  String _formatTime(DateTime date) {
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
-
   String _formatWater(double value) {
     return value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
+  }
+
+  String _getSlotLabel(MealSlot slot, AppLocalizations l10n) {
+    return switch (slot) {
+      MealSlot.breakfast => l10n.breakfast,
+      MealSlot.lunch => l10n.lunch,
+      MealSlot.afternoonSnack => l10n.afternoonSnack,
+      MealSlot.dinner => l10n.dinner,
+    };
   }
 
   IconData _getSlotIcon(MealSlot slot) {

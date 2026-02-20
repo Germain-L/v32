@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../utils/date_formatter.dart';
+import '../../utils/l10n_helper.dart';
 import '../providers/today_provider.dart';
 import '../widgets/meal_slot.dart';
 
@@ -92,9 +94,9 @@ class _TodayScreenState extends State<TodayScreen>
       appBar: AppBar(
         title: Column(
           children: [
-            const Text('Today'),
+            Text(context.l10n.todayTitle),
             Text(
-              _formatDate(now),
+              context.dateFormatter.formatFullDate(now),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -179,12 +181,17 @@ class _TodayScreenState extends State<TodayScreen>
   }
 
   Widget _buildDayRating(ThemeData theme) {
+    final l10n = context.l10n;
     final colorScheme = theme.colorScheme;
     final rating = _provider.dayRating;
     final options = [
-      (value: 1, label: 'Bad', icon: Icons.sentiment_very_dissatisfied),
-      (value: 2, label: 'Okay', icon: Icons.sentiment_neutral),
-      (value: 3, label: 'Great', icon: Icons.sentiment_very_satisfied),
+      (
+        value: 1,
+        label: l10n.ratingBad,
+        icon: Icons.sentiment_very_dissatisfied,
+      ),
+      (value: 2, label: l10n.ratingOkay, icon: Icons.sentiment_neutral),
+      (value: 3, label: l10n.ratingGreat, icon: Icons.sentiment_very_satisfied),
     ];
 
     return Padding(
@@ -206,7 +213,7 @@ class _TodayScreenState extends State<TodayScreen>
                 Icon(Icons.auto_awesome, size: 18, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'How was your day?',
+                  l10n.howWasYourDay,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
@@ -214,7 +221,7 @@ class _TodayScreenState extends State<TodayScreen>
                 ),
                 const Spacer(),
                 Text(
-                  rating == null ? 'Not set' : 'Logged',
+                  rating == null ? l10n.ratingNotSet : l10n.ratingLogged,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -224,7 +231,7 @@ class _TodayScreenState extends State<TodayScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              'Tap the mood that matches today overall.',
+              l10n.dayRatingSubtitleToday,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -299,11 +306,12 @@ class _TodayScreenState extends State<TodayScreen>
   }
 
   Widget _buildDailyMetrics(ThemeData theme) {
+    final l10n = context.l10n;
     final colorScheme = theme.colorScheme;
     final goalMet = _provider.isWaterGoalMet;
     final waterLabel = _provider.waterLiters == null
-        ? 'Not logged'
-        : '${_formatWater(_provider.waterLiters!)} L';
+        ? l10n.notLogged
+        : l10n.waterAmount(_formatWater(_provider.waterLiters!));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
@@ -328,7 +336,7 @@ class _TodayScreenState extends State<TodayScreen>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Daily Metrics',
+                  l10n.dailyMetrics,
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
@@ -346,7 +354,7 @@ class _TodayScreenState extends State<TodayScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Goal met',
+                      l10n.goalMet,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.tertiary,
                         fontWeight: FontWeight.w600,
@@ -357,7 +365,7 @@ class _TodayScreenState extends State<TodayScreen>
             ),
             const SizedBox(height: 4),
             Text(
-              'Log water and exercise for today.',
+              l10n.dailyMetricsSubtitleToday,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
@@ -372,7 +380,7 @@ class _TodayScreenState extends State<TodayScreen>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Water',
+                  l10n.waterLabel,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -389,8 +397,8 @@ class _TodayScreenState extends State<TodayScreen>
                     onChanged: _provider.updateWaterLiters,
                     decoration: InputDecoration(
                       isDense: true,
-                      suffixText: 'L',
-                      hintText: '0.0',
+                      suffixText: l10n.waterUnit,
+                      hintText: l10n.waterHintText,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,
@@ -407,7 +415,7 @@ class _TodayScreenState extends State<TodayScreen>
             Row(
               children: [
                 Text(
-                  'Goal: 1.5 L',
+                  l10n.waterGoal,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -434,7 +442,7 @@ class _TodayScreenState extends State<TodayScreen>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Exercise',
+                  l10n.exerciseLabel,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -453,7 +461,7 @@ class _TodayScreenState extends State<TodayScreen>
               minLines: 1,
               onChanged: _provider.updateExerciseNote,
               decoration: InputDecoration(
-                hintText: 'Optional: walk, gym, yoga',
+                hintText: l10n.exerciseHintText,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 10,
@@ -520,7 +528,7 @@ class _TodayScreenState extends State<TodayScreen>
               _provider.clearError();
               _provider.loadTodayMeals();
             },
-            child: const Text('Retry'),
+            child: Text(context.l10n.retry),
           ),
         ],
       ),
@@ -531,16 +539,18 @@ class _TodayScreenState extends State<TodayScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Meal'),
-        content: Text('Are you sure you want to clear ${slot.displayName}?'),
+        title: Text(context.l10n.clearMeal),
+        content: Text(
+          context.l10n.clearMealConfirmation(slot.localizedName(context.l10n)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear'),
+            child: Text(context.l10n.clear),
           ),
         ],
       ),
@@ -549,34 +559,6 @@ class _TodayScreenState extends State<TodayScreen>
     if (confirmed == true) {
       await _provider.clearMeal(slot);
     }
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    final weekdays = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-
-    return '${weekdays[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}';
   }
 
   String _formatWater(double value) {

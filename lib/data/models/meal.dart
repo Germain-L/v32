@@ -1,3 +1,5 @@
+import '../../gen_l10n/app_localizations.dart';
+
 enum MealSlot { breakfast, lunch, afternoonSnack, dinner }
 
 extension MealSlotExtension on MealSlot {
@@ -11,6 +13,19 @@ extension MealSlotExtension on MealSlot {
         return 'Afternoon Snack';
       case MealSlot.dinner:
         return 'Dinner';
+    }
+  }
+
+  String localizedName(AppLocalizations l10n) {
+    switch (this) {
+      case MealSlot.breakfast:
+        return l10n.breakfast;
+      case MealSlot.lunch:
+        return l10n.lunch;
+      case MealSlot.afternoonSnack:
+        return l10n.afternoonSnack;
+      case MealSlot.dinner:
+        return l10n.dinner;
     }
   }
 }
