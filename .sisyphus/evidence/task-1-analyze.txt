@@ -1,0 +1,58 @@
+Task 1: Extract Shared Animation Helpers - Verification
+======================================================
+
+## Flutter Analyze Output
+
+```
+Analyzing diet...                                                
+No issues found! (ran in 2.7s)
+```
+
+## Grep Verification: No Duplicates in Screen Files
+
+Command: grep -r "Color _ratingColor\|String _formatWater" lib/presentation/screens/
+
+Result: No matches found
+
+## Grep Verification: Shared Helpers Used
+
+Command: grep -r "ratingColor\|formatWater\|kSpringCurve\|kStaggeredSlideDelta" lib/presentation/screens/
+
+Results:
+- today_screen.dart: Uses `ratingColor` and `formatWater`
+- day_detail_screen.dart: Uses `ratingColor`
+- calendar_screen.dart: Uses `ratingColorTransparentOnNull`
+
+## New File Created
+
+File: lib/utils/animation_helpers.dart
+Contents:
+- Color ratingColor(ColorScheme colorScheme, int? rating)
+- Color ratingColorTransparentOnNull(ColorScheme colorScheme, int? rating)
+- String formatWater(double value)
+- const Curve kSpringCurve = Curves.easeOutBack
+- const Offset kStaggeredSlideDelta = Offset(0, 0.04)
+
+## Files Modified
+
+1. lib/presentation/screens/today_screen.dart
+   - Added import for animation_helpers.dart
+   - Removed local _ratingColor method
+   - Removed local _formatWater method
+   - Updated calls to use shared helpers
+
+2. lib/presentation/screens/day_detail_screen.dart
+   - Added import for animation_helpers.dart
+   - Removed local _ratingColor method
+   - Updated calls to use shared helpers
+
+3. lib/presentation/screens/calendar_screen.dart
+   - Added import for animation_helpers.dart
+   - Removed local _ratingColor method (nullable variant)
+   - Updated calls to use ratingColorTransparentOnNull
+
+## Summary
+
+All duplicate implementations have been successfully extracted to
+lib/utils/animation_helpers.dart and all screen files now use the
+shared helpers. Zero errors from flutter analyze.

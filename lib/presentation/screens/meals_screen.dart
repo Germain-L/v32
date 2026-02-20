@@ -1,15 +1,28 @@
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
+import '../../data/repositories/daily_metrics_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/l10n_helper.dart';
 import '../providers/meals_provider.dart';
+import '../widgets/haptic_feedback_wrapper.dart';
 import '../widgets/meal_history_card.dart';
+import '../widgets/press_scale.dart';
+import '../widgets/skeleton_loading.dart';
+import '../widgets/staggered_item.dart';
 
 class MealsScreen extends StatefulWidget {
-  const MealsScreen({super.key});
+  final MealRepository? repository;
+  final DailyMetricsRepository? metricsRepository;
+  final bool autoLoad;
+
+  const MealsScreen({
+    super.key,
+    this.repository,
+    this.metricsRepository,
+    this.autoLoad = true,
+  });
 
   @override
   State<MealsScreen> createState() => _MealsScreenState();
@@ -24,7 +37,11 @@ class _MealsScreenState extends State<MealsScreen>
   @override
   void initState() {
     super.initState();
-    _provider = MealsProvider(MealRepository());
+    _provider = MealsProvider(
+      widget.repository ?? MealRepository(),
+      metricsRepository: widget.metricsRepository,
+      autoLoad: widget.autoLoad,
+    );
     _provider.addListener(_onProviderChanged);
     _scrollController.addListener(_onScroll);
     _listController = AnimationController(
@@ -64,20 +81,10 @@ class _MealsScreenState extends State<MealsScreen>
         title: Text(context.l10n.mealHistoryTitle),
         centerTitle: true,
         actions: [
-          if (_provider.isLoading && _provider.meals.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(right: 16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _provider.refresh,
-            ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _provider.refresh,
+          ),
         ],
       ),
       body: _buildBody(theme, colorScheme, context),
@@ -97,7 +104,29 @@ class _MealsScreenState extends State<MealsScreen>
       return _buildEmptyState(theme, colorScheme, context);
     }
 
+    if (_provider.isLoading && _provider.meals.isEmpty) {
+      return _buildSkeletonList();
+    }
+
     return _buildMealList(theme, colorScheme, context);
+  }
+
+  Widget _buildSkeletonList() {
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return SkeletonLoading(
+          child: Column(
+            children: [
+              const SkeletonDateSeparator(),
+              const SkeletonMetricsSummary(),
+              const SkeletonFeedCard(),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildErrorState(ColorScheme colorScheme, BuildContext context) {
@@ -198,27 +227,65 @@ class _MealsScreenState extends State<MealsScreen>
 
           final item = feedItems[index];
           if (item.isSeparator) {
-            return _buildStaggeredItem(
-              _buildDateSeparator(item.dateLabel!, theme, colorScheme),
-              index,
+            return StaggeredItem(
+              index: index,
+              animationController: _listController,
+              startMultiplier: 0.08,
+              intervalDuration: 0.5,
+              child: _buildDateSeparator(item.dateLabel!, theme, colorScheme),
             );
           }
           if (item.isMetrics) {
-            return _buildStaggeredItem(
-              _buildMetricsSummary(
+            return StaggeredItem(
+              index: index,
+              animationController: _listController,
+              startMultiplier: 0.08,
+              intervalDuration: 0.5,
+              child: _buildMetricsSummary(
                 theme,
                 colorScheme,
                 item.metricsDate!,
                 context,
               ),
-              index,
             );
           }
 
           final meal = item.meal!;
-          return _buildStaggeredItem(
-            MealHistoryCard(meal: meal, onTap: () => _onMealTap(meal)),
-            index,
+          return StaggeredItem(
+            index: index,
+            animationController: _listController,
+            startMultiplier: 0.08,
+            intervalDuration: 0.5,
+            child: Dismissible(
+              key: ValueKey('meal_${meal.id}'),
+              direction: DismissDirection.endToStart,
+              confirmDismiss: (direction) => _showDeleteConfirmation(meal),
+              onUpdate: (details) {
+                if (details.progress >= 0.4 && details.progress < 0.5) {
+                  HapticFeedbackUtil.trigger(HapticLevel.medium);
+                }
+              },
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 20),
+                decoration: BoxDecoration(
+                  color: colorScheme.error,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: colorScheme.onError,
+                  size: 28,
+                ),
+              ),
+              child: PressScale(
+                onTap: () => _onMealTap(meal),
+                child: MealHistoryCard(
+                  meal: meal,
+                  onTap: () => _onMealTap(meal),
+                ),
+              ),
+            ),
           );
         },
       ),
@@ -346,26 +413,6 @@ class _MealsScreenState extends State<MealsScreen>
     );
   }
 
-  Widget _buildStaggeredItem(Widget child, int index) {
-    final start = (index * 0.08);
-    final end = math.min(1.0, start + 0.5);
-    final animation = CurvedAnimation(
-      parent: _listController,
-      curve: Interval(start, end, curve: Curves.easeOutCubic),
-    );
-
-    return FadeTransition(
-      opacity: animation,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.04),
-          end: Offset.zero,
-        ).animate(animation),
-        child: child,
-      ),
-    );
-  }
-
   Widget _buildLoadingFooter(ColorScheme colorScheme) {
     if (!_provider.isLoading) return const SizedBox.shrink();
 
@@ -421,6 +468,37 @@ class _MealsScreenState extends State<MealsScreen>
       ),
       builder: (context) => _MealPreviewSheet(meal: meal),
     );
+  }
+
+  Future<bool> _showDeleteConfirmation(Meal meal) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.l10n.clearMeal),
+        content: Text(
+          context.l10n.clearMealConfirmation(
+            meal.slot.localizedName(context.l10n),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.l10n.clear),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      HapticFeedbackUtil.trigger(HapticLevel.heavy);
+      final success = await _provider.deleteMeal(meal.id!);
+      return success;
+    }
+    return false;
   }
 }
 

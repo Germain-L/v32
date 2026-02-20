@@ -1,0 +1,73 @@
+# Task 4: Extract DayRatingWidget and DailyMetricsWidget
+
+## Summary
+Successfully extracted `DayRatingWidget` and `DailyMetricsWidget` into reusable widgets.
+
+## Files Created
+1. `lib/presentation/widgets/day_rating_widget.dart` (151 lines)
+2. `lib/presentation/widgets/daily_metrics_widget.dart` (248 lines)
+
+## Files Modified
+1. `lib/presentation/screens/today_screen.dart`
+   - Before: 555 lines
+   - After: 286 lines
+   - Reduction: 269 lines
+   - Removed: `_buildDayRating()` and `_buildDailyMetrics()` methods
+   - Added: Imports and widget usage for new components
+
+2. `lib/presentation/screens/day_detail_screen.dart`
+   - Before: 648 lines
+   - After: 371 lines
+   - Reduction: 277 lines
+   - Removed: `_buildDayRating()` and `_buildDailyMetrics()` methods
+   - Added: Imports and widget usage for new components
+   - Removed unused `animation_helpers.dart` import
+
+## Widget Parameters Handled
+### DayRatingWidget
+- `rating` - current rating value
+- `onRatingSelected` - callback when rating is selected
+- `subtitle` - different between today/day views
+
+### DailyMetricsWidget
+- `waterLiters` - current water amount
+- `isWaterGoalMet` - goal achievement status
+- `exerciseDone` - exercise toggle state
+- `waterController` - text controller for water input
+- `waterFocusNode` - focus node for water input
+- `exerciseNoteController` - text controller for exercise note
+- `exerciseNoteFocusNode` - focus node for exercise note
+- `onWaterChanged` - water input callback
+- `onExerciseDoneChanged` - exercise toggle callback
+- `onExerciseNoteChanged` - exercise note callback
+- `subtitle` - different between today/day views
+- `waterHintText` - different between today ('0.5') and day ('0')
+- `displayWaterInMl` - true for day view (displays ml), false for today view (displays L)
+
+## Differences Between Today and Day Views
+| Aspect | Today Screen | Day Detail Screen |
+|--------|-------------|-------------------|
+| Day Rating subtitle | `dayRatingSubtitleToday` | `dayRatingSubtitleDay` |
+| Daily Metrics subtitle | `dailyMetricsSubtitleToday` | `dailyMetricsSubtitleDay` |
+| Water hint text | `l10n.waterHintText` | `'0'` |
+| Water display | Liters (0.5) | Milliliters (500) |
+| updateDayRating call | `updateDayRating(value)` | `updateDayRating(value, l10n)` |
+
+## Verification
+```
+$ flutter analyze
+Analyzing diet...
+No issues found! (ran in 2.7s)
+```
+
+## Widget Usage Verification
+```
+$ grep -n "DayRatingWidget\|DailyMetricsWidget" lib/presentation/screens/today_screen.dart lib/presentation/screens/day_detail_screen.dart
+lib/presentation/screens/today_screen.dart:156:                  DayRatingWidget(
+lib/presentation/screens/today_screen.dart:167:                  DailyMetricsWidget(
+lib/presentation/screens/day_detail_screen.dart:241:                DayRatingWidget(
+lib/presentation/screens/day_detail_screen.dart:252:                DailyMetricsWidget(
+```
+
+## Date
+2025-02-20

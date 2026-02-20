@@ -6,9 +6,12 @@ import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../utils/animation_helpers.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/l10n_helper.dart';
 import '../providers/calendar_provider.dart';
+import '../widgets/haptic_feedback_wrapper.dart';
+import '../widgets/press_scale.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -19,6 +22,7 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   late final CalendarProvider _provider;
+  int _monthDirection = 0; // -1 for previous, 1 for next, 0 for initial
 
   @override
   void initState() {
@@ -83,10 +87,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
       child: Row(
         children: [
-          IconButton(
-            onPressed: _provider.goToPreviousMonth,
-            icon: const Icon(Icons.chevron_left),
-            color: colorScheme.onSurfaceVariant,
+          PressScale(
+            onTap: () {
+              HapticFeedbackUtil.trigger(HapticLevel.light);
+              setState(() => _monthDirection = -1);
+              _provider.goToPreviousMonth();
+            },
+            child: IconButton(
+              onPressed: null,
+              icon: const Icon(Icons.chevron_left),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
           Expanded(
             child: Text(
@@ -98,10 +109,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ),
           ),
-          IconButton(
-            onPressed: _provider.goToNextMonth,
-            icon: const Icon(Icons.chevron_right),
-            color: colorScheme.onSurfaceVariant,
+          PressScale(
+            onTap: () {
+              HapticFeedbackUtil.trigger(HapticLevel.light);
+              setState(() => _monthDirection = 1);
+              _provider.goToNextMonth();
+            },
+            child: IconButton(
+              onPressed: null,
+              icon: const Icon(Icons.chevron_right),
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -142,34 +160,53 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final days = _buildDaysForMonth(_provider.focusedMonth);
     final selected = _provider.selectedDate;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 7,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 1.0,
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeOutCubic,
+      transitionBuilder: (child, animation) {
+        final isNext = _monthDirection > 0;
+        final beginOffset = isNext
+            ? const Offset(1.0, 0.0)
+            : const Offset(-1.0, 0.0);
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: beginOffset,
+            end: Offset.zero,
+          ).animate(animation),
+          child: FadeTransition(opacity: animation, child: child),
+        );
+      },
+      child: Padding(
+        key: ValueKey(_provider.focusedMonth),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 7,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1.0,
+          ),
+          itemCount: days.length,
+          itemBuilder: (context, index) {
+            final day = days[index];
+            final isCurrentMonth = day.month == _provider.focusedMonth.month;
+            final isSelected = _isSameDay(day, selected);
+            final rating = _provider.ratingForDate(day);
+            final metrics = _provider.metricsForDate(day);
+            return _buildDayCell(
+              theme,
+              colorScheme,
+              day,
+              isCurrentMonth: isCurrentMonth,
+              isSelected: isSelected,
+              rating: rating,
+              metrics: metrics,
+            );
+          },
         ),
-        itemCount: days.length,
-        itemBuilder: (context, index) {
-          final day = days[index];
-          final isCurrentMonth = day.month == _provider.focusedMonth.month;
-          final isSelected = _isSameDay(day, selected);
-          final rating = _provider.ratingForDate(day);
-          final metrics = _provider.metricsForDate(day);
-          return _buildDayCell(
-            theme,
-            colorScheme,
-            day,
-            isCurrentMonth: isCurrentMonth,
-            isSelected: isSelected,
-            rating: rating,
-            metrics: metrics,
-          );
-        },
       ),
     );
   }
@@ -188,7 +225,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         : isCurrentMonth
         ? colorScheme.onSurface
         : colorScheme.onSurfaceVariant;
-    final ratingColor = _ratingColor(colorScheme, rating);
+    final ratingColor = ratingColorTransparentOnNull(colorScheme, rating);
     final textColor = isSelected
         ? colorScheme.onPrimary
         : rating != null
@@ -209,9 +246,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final isWaterGoalMet = (waterLiters ?? 0) >= 1.5;
     final showDots = isCurrentMonth;
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
+    return PressScale(
       onTap: () async {
+        HapticFeedbackUtil.trigger(HapticLevel.selection);
         if (isSelected) {
           await context.push('/calendar/day/${_formatRouteDate(day)}');
           if (!mounted) return;
@@ -220,72 +257,85 @@ class _CalendarScreenState extends State<CalendarScreen> {
         }
         _provider.selectDate(day);
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: colorScheme.primary.withValues(alpha: 0.18),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          HapticFeedbackUtil.trigger(HapticLevel.selection);
+          if (isSelected) {
+            await context.push('/calendar/day/${_formatRouteDate(day)}');
+            if (!mounted) return;
+            await _provider.refresh();
+            return;
+          }
+          _provider.selectDate(day);
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor, width: isSelected ? 1.5 : 1),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: colorScheme.primary.withValues(alpha: 0.18),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Stack(
+            children: [
+              Center(
+                child: Text(
+                  '${day.day}',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: textColor,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   ),
-                ]
-              : null,
-        ),
-        child: Stack(
-          children: [
-            Center(
-              child: Text(
-                '${day.day}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 ),
               ),
-            ),
-            if (rating != null)
-              Positioned(
-                left: 8,
-                right: 8,
-                bottom: 7,
-                child: Container(
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: ratingColor,
-                    borderRadius: BorderRadius.circular(8),
+              if (rating != null)
+                Positioned(
+                  left: 8,
+                  right: 8,
+                  bottom: 7,
+                  child: Container(
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: ratingColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
-              ),
-            if (showDots && isWaterGoalMet)
-              Positioned(
-                left: 6,
-                top: 6,
-                child: _buildCornerDot(
-                  color: isSelected
-                      ? colorScheme.onPrimary
-                      : colorScheme.tertiary,
-                  borderColor: isSelected
-                      ? colorScheme.onPrimary.withValues(alpha: 0.7)
-                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              if (showDots && isWaterGoalMet)
+                Positioned(
+                  left: 6,
+                  top: 6,
+                  child: _buildCornerDot(
+                    color: isSelected
+                        ? colorScheme.onPrimary
+                        : colorScheme.tertiary,
+                    borderColor: isSelected
+                        ? colorScheme.onPrimary.withValues(alpha: 0.7)
+                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
                 ),
-              ),
-            if (showDots && exerciseDone)
-              Positioned(
-                right: 6,
-                top: 6,
-                child: _buildCornerDot(
-                  color: isSelected
-                      ? colorScheme.onPrimary
-                      : colorScheme.secondary,
-                  borderColor: isSelected
-                      ? colorScheme.onPrimary.withValues(alpha: 0.7)
-                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              if (showDots && exerciseDone)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: _buildCornerDot(
+                    color: isSelected
+                        ? colorScheme.onPrimary
+                        : colorScheme.secondary,
+                    borderColor: isSelected
+                        ? colorScheme.onPrimary.withValues(alpha: 0.7)
+                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -503,17 +553,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildMealThumbnail(ColorScheme colorScheme, Meal meal) {
     if (meal.hasImage && meal.imagePath != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          width: 56,
-          height: 56,
-          child: Image.file(
-            File(meal.imagePath!),
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return _buildMealPlaceholder(colorScheme);
-            },
+      return Hero(
+        tag: 'meal-photo-${meal.id}',
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            width: 56,
+            height: 56,
+            child: Image.file(
+              File(meal.imagePath!),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildMealPlaceholder(colorScheme);
+              },
+            ),
           ),
         ),
       );
@@ -648,16 +701,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       MealSlot.lunch => Icons.lunch_dining_outlined,
       MealSlot.afternoonSnack => Icons.coffee_outlined,
       MealSlot.dinner => Icons.nights_stay_outlined,
-    };
-  }
-
-  Color _ratingColor(ColorScheme colorScheme, int? rating) {
-    if (rating == null) return Colors.transparent;
-    return switch (rating) {
-      1 => colorScheme.error,
-      2 => colorScheme.tertiary,
-      3 => colorScheme.primary,
-      _ => colorScheme.outline,
     };
   }
 }

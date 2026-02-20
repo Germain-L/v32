@@ -25,6 +25,7 @@ class TodayProvider extends ChangeNotifier {
   final Map<MealSlot, bool> _isClearing = {};
   String? _error;
   bool _isDisposed = false;
+  bool _isLoadingInitial = false;
   AppLocalizations? _currentL10n;
   int? _dayRating;
   double? _waterLiters;
@@ -58,6 +59,7 @@ class TodayProvider extends ChangeNotifier {
 
   Meal? getMeal(MealSlot slot) => _meals[slot];
   bool isLoading(MealSlot slot) => _isLoading[slot] ?? false;
+  bool get isLoadingInitial => _isLoadingInitial;
   bool isSaving(MealSlot slot) => _isSaving[slot] ?? false;
   String getDescription(MealSlot slot) => _descriptions[slot] ?? '';
   String? get error => _error;
@@ -69,6 +71,8 @@ class TodayProvider extends ChangeNotifier {
 
   Future<void> loadTodayMeals({AppLocalizations? l10n}) async {
     _currentL10n = l10n;
+    _isLoadingInitial = true;
+    _notifyIfMounted();
     try {
       final meals = await _repository.getMealsForDate(DateTime.now());
 
@@ -77,11 +81,13 @@ class TodayProvider extends ChangeNotifier {
         _descriptions[slot] = _meals[slot]?.description ?? '';
       }
 
+      _isLoadingInitial = false;
       _notifyIfMounted();
     } catch (e) {
       _error = l10n != null
           ? '${l10n.errorLoadMeals}: $e'
           : 'Failed to load meals: $e';
+      _isLoadingInitial = false;
       _notifyIfMounted();
     }
   }

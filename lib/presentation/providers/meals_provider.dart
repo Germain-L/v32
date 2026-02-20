@@ -106,6 +106,19 @@ class MealsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> deleteMeal(int mealId) async {
+    try {
+      await _repository.deleteMeal(mealId);
+      _meals.removeWhere((m) => m.id == mealId);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'Failed to delete meal: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   String getFormattedDateGroup(DateTime date, [AppLocalizations? l10n]) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

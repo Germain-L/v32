@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../utils/l10n_helper.dart';
+import 'haptic_feedback_wrapper.dart';
+import 'press_scale.dart';
 
 class MealSlotWidget extends StatelessWidget {
   final MealSlot slot;
@@ -16,6 +18,8 @@ class MealSlotWidget extends StatelessWidget {
   final TextEditingController? descriptionController;
   final FocusNode? descriptionFocusNode;
   final bool isSavingDescription;
+  final bool showSaveSuccess;
+  final String? heroTag;
 
   const MealSlotWidget({
     super.key,
@@ -31,6 +35,8 @@ class MealSlotWidget extends StatelessWidget {
     this.descriptionController,
     this.descriptionFocusNode,
     this.isSavingDescription = false,
+    this.showSaveSuccess = false,
+    this.heroTag,
   });
 
   @override
@@ -103,7 +109,7 @@ class MealSlotWidget extends StatelessWidget {
   Widget _buildPhotoPreview(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Stack(
+    Widget imageWidget = Stack(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
@@ -163,6 +169,12 @@ class MealSlotWidget extends StatelessWidget {
         ),
       ],
     );
+
+    if (heroTag != null) {
+      return Hero(tag: heroTag!, child: imageWidget);
+    }
+
+    return imageWidget;
   }
 
   Widget _buildPhotoPlaceholder(BuildContext context) {
@@ -212,25 +224,34 @@ class MealSlotWidget extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 32, color: theme.colorScheme.primary),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
+    return PressScale(
+      onTap: () {
+        HapticFeedbackUtil.trigger(HapticLevel.selection);
+        onTap?.call();
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedbackUtil.trigger(HapticLevel.selection);
+            onTap?.call();
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 32, color: theme.colorScheme.primary),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -243,18 +264,27 @@ class MealSlotWidget extends StatelessWidget {
     required String tooltip,
     bool isDestructive = false,
   }) {
-    return Material(
-      color: Colors.black54,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: onTap,
+    return PressScale(
+      onTap: () {
+        HapticFeedbackUtil.trigger(HapticLevel.selection);
+        onTap?.call();
+      },
+      child: Material(
+        color: Colors.black54,
         borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          child: Icon(
-            icon,
-            color: isDestructive ? Colors.red[300] : Colors.white,
-            size: 20,
+        child: InkWell(
+          onTap: () {
+            HapticFeedbackUtil.trigger(HapticLevel.selection);
+            onTap?.call();
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            child: Icon(
+              icon,
+              color: isDestructive ? Colors.red[300] : Colors.white,
+              size: 20,
+            ),
           ),
         ),
       ),
@@ -271,9 +301,18 @@ class MealSlotWidget extends StatelessWidget {
           controller: descriptionController,
           focusNode: descriptionFocusNode,
           onChanged: onDescriptionChanged,
-          onEditingComplete: onDescriptionEditingComplete,
-          onFieldSubmitted: (_) => onDescriptionEditingComplete?.call(),
-          onTapOutside: (_) => onDescriptionEditingComplete?.call(),
+          onEditingComplete: () {
+            HapticFeedbackUtil.trigger(HapticLevel.medium);
+            onDescriptionEditingComplete?.call();
+          },
+          onFieldSubmitted: (_) {
+            HapticFeedbackUtil.trigger(HapticLevel.medium);
+            onDescriptionEditingComplete?.call();
+          },
+          onTapOutside: (_) {
+            HapticFeedbackUtil.trigger(HapticLevel.medium);
+            onDescriptionEditingComplete?.call();
+          },
           maxLines: null,
           minLines: 2,
           textCapitalization: TextCapitalization.sentences,
@@ -292,22 +331,10 @@ class MealSlotWidget extends StatelessWidget {
           ),
         ),
         AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          switchInCurve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 200),
+          switchInCurve: Curves.easeOutBack,
           switchOutCurve: Curves.easeInCubic,
-          child: isSavingDescription
-              ? Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                )
-              : const SizedBox.shrink(),
+          child: _buildStatusIndicator(context, theme),
         ),
       ],
     );
@@ -324,5 +351,35 @@ class MealSlotWidget extends StatelessWidget {
       case MealSlot.dinner:
         return Icons.dinner_dining;
     }
+  }
+
+  Widget _buildStatusIndicator(BuildContext context, ThemeData theme) {
+    if (showSaveSuccess) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        HapticFeedbackUtil.trigger(HapticLevel.medium);
+      });
+      return Padding(
+        key: const ValueKey('checkmark'),
+        padding: const EdgeInsets.only(right: 12),
+        child: Icon(Icons.check, color: Colors.green, size: 20),
+      );
+    }
+
+    if (isSavingDescription) {
+      return Padding(
+        key: const ValueKey('spinner'),
+        padding: const EdgeInsets.only(right: 12),
+        child: SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink(key: ValueKey('idle'));
   }
 }

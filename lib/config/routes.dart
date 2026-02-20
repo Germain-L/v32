@@ -4,6 +4,7 @@ import '../presentation/screens/today_screen.dart';
 import '../presentation/screens/meals_screen.dart';
 import '../presentation/screens/calendar_screen.dart';
 import '../presentation/screens/day_detail_screen.dart';
+import '../presentation/widgets/haptic_feedback_wrapper.dart';
 import '../utils/l10n_helper.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -118,6 +119,7 @@ class MainScaffold extends StatelessWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
+    HapticFeedbackUtil.trigger(HapticLevel.light);
     switch (index) {
       case 0:
         context.go('/today');

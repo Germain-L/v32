@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
@@ -9,7 +8,11 @@ import '../../utils/date_formatter.dart';
 import '../../utils/l10n_helper.dart';
 import '../../utils/meal_slot_localization.dart';
 import '../providers/day_detail_provider.dart';
+import '../widgets/daily_metrics_widget.dart';
+import '../widgets/day_rating_widget.dart';
+import '../widgets/haptic_feedback_wrapper.dart';
 import '../widgets/meal_slot.dart';
+import '../widgets/staggered_item.dart';
 
 class DayDetailScreen extends StatefulWidget {
   final DateTime initialDate;
@@ -124,6 +127,8 @@ class _DayDetailPageState extends State<DayDetailPage>
     with SingleTickerProviderStateMixin {
   late final DayDetailProvider _provider;
   late final AnimationController _listController;
+  late final AnimationController _shakeController;
+  late final Animation<double> _shakeAnimation;
   final Map<MealSlot, TextEditingController> _controllers = {};
   final Map<MealSlot, FocusNode> _focusNodes = {};
   late final TextEditingController _waterController;
@@ -151,6 +156,18 @@ class _DayDetailPageState extends State<DayDetailPage>
       vsync: this,
       duration: const Duration(milliseconds: 650),
     )..forward();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _shakeAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0, end: 8), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 8, end: -8), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -8, end: 8), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 8, end: -8), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: -8, end: 8), weight: 1),
+      TweenSequenceItem(tween: Tween(begin: 8, end: 0), weight: 1),
+    ]).animate(_shakeController);
   }
 
   @override
@@ -159,6 +176,7 @@ class _DayDetailPageState extends State<DayDetailPage>
     _disposeControllers();
     _disposeFocusNodes();
     _listController.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 
@@ -235,17 +253,43 @@ class _DayDetailPageState extends State<DayDetailPage>
           itemCount: MealSlot.values.length + 2,
           itemBuilder: (context, index) {
             if (index == 0) {
-              return _buildStaggeredItem(_buildDayRating(theme, l10n), index);
+              return StaggeredItem(
+                index: index,
+                animationController: _listController,
+                child: DayRatingWidget(
+                  rating: _provider.dayRating,
+                  onRatingSelected: (value) =>
+                      _provider.updateDayRating(value, l10n),
+                  subtitle: l10n.dayRatingSubtitleDay,
+                ),
+              );
             }
             if (index == 1) {
-              return _buildStaggeredItem(
-                _buildDailyMetrics(theme, l10n),
-                index,
+              return StaggeredItem(
+                index: index,
+                animationController: _listController,
+                child: DailyMetricsWidget(
+                  waterLiters: _provider.waterLiters,
+                  isWaterGoalMet: _provider.isWaterGoalMet,
+                  exerciseDone: _provider.exerciseDone,
+                  waterController: _waterController,
+                  waterFocusNode: _waterFocusNode,
+                  exerciseNoteController: _exerciseNoteController,
+                  exerciseNoteFocusNode: _exerciseNoteFocusNode,
+                  onWaterChanged: _provider.updateWaterLiters,
+                  onExerciseDoneChanged: _provider.updateExerciseDone,
+                  onExerciseNoteChanged: _provider.updateExerciseNote,
+                  subtitle: l10n.dailyMetricsSubtitleDay,
+                  waterHintText: '0',
+                  displayWaterInMl: true,
+                ),
               );
             }
             final slot = MealSlot.values[index - 2];
-            return _buildStaggeredItem(
-              MealSlotWidget(
+            return StaggeredItem(
+              index: index,
+              animationController: _listController,
+              child: MealSlotWidget(
                 slot: slot,
                 meal: _provider.getMeal(slot),
                 isLoading: _provider.isLoading(slot),
@@ -260,8 +304,10 @@ class _DayDetailPageState extends State<DayDetailPage>
                 onDescriptionEditingComplete: () =>
                     _provider.saveDescriptionNow(slot),
                 isSavingDescription: _provider.isSaving(slot),
+                heroTag: _provider.getMeal(slot)?.id != null
+                    ? 'meal-photo-${_provider.getMeal(slot)!.id}'
+                    : null,
               ),
-              index,
             );
           },
         );
@@ -269,341 +315,27 @@ class _DayDetailPageState extends State<DayDetailPage>
     );
   }
 
-  Widget _buildDayRating(ThemeData theme, AppLocalizations l10n) {
-    final colorScheme = theme.colorScheme;
-    final rating = _provider.dayRating;
-    final options = [
-      (
-        value: 1,
-        label: l10n.ratingBad,
-        icon: Icons.sentiment_very_dissatisfied,
-      ),
-      (value: 2, label: l10n.ratingOkay, icon: Icons.sentiment_neutral),
-      (value: 3, label: l10n.ratingGreat, icon: Icons.sentiment_very_satisfied),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
-          ),
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.auto_awesome, size: 18, color: colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.howWasYourDay,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  rating == null ? l10n.ratingNotSet : l10n.ratingLogged,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.dayRatingSubtitleDay,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: options.map((option) {
-                final selected = rating == option.value;
-                final optionColor = _ratingColor(colorScheme, option.value);
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () =>
-                            _provider.updateDayRating(option.value, l10n),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          curve: Curves.easeOutCubic,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? optionColor.withValues(alpha: 0.18)
-                                : colorScheme.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: selected
-                                  ? optionColor
-                                  : colorScheme.outlineVariant.withValues(
-                                      alpha: 0.6,
-                                    ),
-                              width: selected ? 1.4 : 1,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                option.icon,
-                                size: 22,
-                                color: selected
-                                    ? optionColor
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                option.label,
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: selected
-                                      ? optionColor
-                                      : colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDailyMetrics(ThemeData theme, AppLocalizations l10n) {
-    final colorScheme = theme.colorScheme;
-    final goalMet = _provider.isWaterGoalMet;
-    final waterLabel = _provider.waterLiters == null
-        ? l10n.notLogged
-        : l10n.waterAmount(
-            (_provider.waterLiters! * 1000).toStringAsFixed(
-              _provider.waterLiters! % 1 == 0 ? 0 : 1,
-            ),
-          );
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.6),
-          ),
-        ),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.water_drop_outlined,
-                  size: 18,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.dailyMetrics,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const Spacer(),
-                if (goalMet)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.tertiary.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      l10n.goalMet,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.tertiary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.dailyMetricsSubtitleDay,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Icon(
-                  Icons.opacity,
-                  size: 18,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.waterLabel,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: 110,
-                  child: TextField(
-                    controller: _waterController,
-                    focusNode: _waterFocusNode,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: _provider.updateWaterLiters,
-                    decoration: InputDecoration(
-                      isDense: true,
-                      suffixText: l10n.waterUnit,
-                      hintText: '0',
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Text(
-                  l10n.waterGoal,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  waterLabel,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: goalMet
-                        ? colorScheme.tertiary
-                        : colorScheme.onSurfaceVariant,
-                    fontWeight: goalMet ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Icon(
-                  Icons.directions_run_outlined,
-                  size: 18,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.exerciseLabel,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const Spacer(),
-                Switch.adaptive(
-                  value: _provider.exerciseDone,
-                  onChanged: _provider.updateExerciseDone,
-                ),
-              ],
-            ),
-            TextField(
-              controller: _exerciseNoteController,
-              focusNode: _exerciseNoteFocusNode,
-              maxLines: 2,
-              minLines: 1,
-              onChanged: _provider.updateExerciseNote,
-              decoration: InputDecoration(
-                hintText: l10n.exerciseHintText,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _ratingColor(ColorScheme colorScheme, int rating) {
-    return switch (rating) {
-      1 => colorScheme.error,
-      2 => colorScheme.tertiary,
-      3 => colorScheme.primary,
-      _ => colorScheme.outline,
-    };
-  }
-
-  Widget _buildStaggeredItem(Widget child, int index) {
-    final start = (index * 0.12);
-    final end = math.min(1.0, start + 0.6);
-    final animation = CurvedAnimation(
-      parent: _listController,
-      curve: Interval(start, end, curve: Curves.easeOutCubic),
-    );
-
-    return FadeTransition(
-      opacity: animation,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.04),
-          end: Offset.zero,
-        ).animate(animation),
-        child: child,
-      ),
-    );
-  }
-
   Widget _buildErrorWidget(ColorScheme colorScheme, AppLocalizations l10n) {
+    HapticFeedbackUtil.trigger(HapticLevel.error);
+    _shakeController.forward(from: 0);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: colorScheme.error),
+          AnimatedBuilder(
+            animation: _shakeAnimation,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(_shakeAnimation.value, 0),
+                child: child,
+              );
+            },
+            child: Icon(
+              Icons.error_outline,
+              size: 48,
+              color: colorScheme.error,
+            ),
+          ),
           const SizedBox(height: 16),
           Text(
             _provider.error!,
@@ -627,6 +359,7 @@ class _DayDetailPageState extends State<DayDetailPage>
     MealSlot slot,
     AppLocalizations l10n,
   ) async {
+    HapticFeedbackUtil.trigger(HapticLevel.heavy);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
