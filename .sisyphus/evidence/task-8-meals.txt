@@ -1,0 +1,71 @@
+# Task 8: Localize meals_screen.dart and meals_provider.dart
+
+## Files Modified
+- lib/presentation/screens/meals_screen.dart
+- lib/presentation/providers/meals_provider.dart
+
+## Changes Made
+
+### meals_screen.dart
+
+1. **Removed `_formatWater()` helper function**
+   - Location: End of file (previously lines 535-537)
+   - Replacement: Using `water.round().toString()` directly in the l10n call
+
+2. **Updated water formatting in `_buildMetricsSummary()`**
+   - Old: `context.l10n.waterAmountWithGoal(_formatWater(water))`
+   - New: `context.l10n.waterAmountWithGoal(water.round().toString())`
+   - Uses l10n for water display with rounded integer value
+
+3. **All user-facing strings already use l10n**
+   - `context.l10n.mealHistoryTitle` ✓
+   - `context.l10n.failedToLoadMeals` ✓
+   - `context.l10n.retry` ✓
+   - `context.l10n.noMealsYet` ✓
+   - `context.l10n.noMealsYetSubtitle` ✓
+   - `context.l10n.noDescription` ✓
+   - `context.l10n.recordedAt(formattedTime)` ✓
+   - `context.l10n.waterLabel`, `context.l10n.waterDash` ✓
+   - `context.l10n.waterAmountWithGoal()` ✓
+   - `context.l10n.goalMetSuffix` ✓
+   - `context.l10n.exerciseLabel` ✓
+   - `context.l10n.exerciseYes` / `context.l10n.exerciseNo` ✓
+
+4. **Uses DateFormatter for time formatting**
+   - `context.dateFormatter.formatTime(meal.date)` in `_MealPreviewSheet`
+
+5. **Uses localized slot names**
+   - `meal.slot.localizedName(context.l10n)` in `_MealPreviewSheet`
+
+### meals_provider.dart
+
+1. **Added import for DateFormatter**
+   - `import '../../utils/date_formatter.dart';`
+
+2. **Rewrote `getFormattedDateGroup()` method**
+   - Now uses DateFormatter for localized weekday, short date, and full date formatting
+   - Uses `l10n?.today` and `l10n?.yesterday` with fallback strings
+   - Removed hardcoded English weekday and month name arrays
+
+3. **Deleted `_getMonthName()` helper**
+   - Entirely removed (was lines 134-150)
+   - Replaced with DateFormatter calls
+
+## Verification
+
+```bash
+$ flutter analyze lib/presentation/screens/meals_screen.dart lib/presentation/providers/meals_provider.dart
+Analyzing 2 items...
+No issues found! (ran in 1.2s)
+```
+
+## Summary
+
+All hardcoded English strings have been replaced with l10n calls:
+- meals_screen.dart: All strings use `context.l10n.*`
+- meals_provider.dart: Uses DateFormatter for date localization, l10n for Today/Yesterday
+
+No manual date formatting functions remain:
+- `_formatWater()` deleted from meals_screen.dart
+- `_getMonthName()` deleted from meals_provider.dart
+- `_formatDateTime()` did not exist in meals_screen.dart (was already using DateFormatter)

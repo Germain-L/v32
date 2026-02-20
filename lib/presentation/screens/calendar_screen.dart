@@ -6,7 +6,6 @@ import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
-import '../../gen_l10n/app_localizations.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/l10n_helper.dart';
 import '../providers/calendar_provider.dart';
@@ -110,12 +109,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildWeekdayRow(ThemeData theme, ColorScheme colorScheme) {
-    // Generate locale-aware weekday labels (Mon, Tue, etc.)
-    final now = DateTime.now();
-    final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    // Generate locale-aware weekday labels (M, T, W, etc.)
     final labels = List.generate(7, (index) {
-      final day = firstDayOfWeek.add(Duration(days: index));
-      return DateFormat.E(context.dateFormatter.locale).format(day);
+      final date = DateTime(2024, 1, 1 + index); // Monday = Jan 1 2024
+      return DateFormat.E(
+        context.dateFormatter.locale,
+      ).format(date)[0].toUpperCase();
     });
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -399,7 +398,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Text(
               water == null
                   ? '${l10n.waterLabel}: ${l10n.waterDash}'
-                  : '${l10n.waterLabel}: ${_formatWater(water)} ${l10n.waterUnit}'
+                  : '${l10n.waterLabel}: ${water.toStringAsFixed(water % 1 == 0 ? 0 : 1)} ${l10n.waterUnit}'
                         '${isGoalMet ? ' (${l10n.goalMet})' : ''}',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurface,
@@ -458,7 +457,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        _getSlotLabel(meal.slot, l10n),
+                        meal.slot.localizedName(l10n),
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -641,19 +640,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
     return '${date.year}-$month-$day';
-  }
-
-  String _formatWater(double value) {
-    return value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
-  }
-
-  String _getSlotLabel(MealSlot slot, AppLocalizations l10n) {
-    return switch (slot) {
-      MealSlot.breakfast => l10n.breakfast,
-      MealSlot.lunch => l10n.lunch,
-      MealSlot.afternoonSnack => l10n.afternoonSnack,
-      MealSlot.dinner => l10n.dinner,
-    };
   }
 
   IconData _getSlotIcon(MealSlot slot) {

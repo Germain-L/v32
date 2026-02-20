@@ -4,6 +4,7 @@ import '../../data/models/meal.dart';
 import '../../data/repositories/daily_metrics_repository.dart';
 import '../../data/repositories/meal_repository.dart';
 import '../../gen_l10n/app_localizations.dart';
+import '../../utils/date_formatter.dart';
 
 class MealsProvider extends ChangeNotifier {
   final MealRepository _repository;
@@ -113,40 +114,17 @@ class MealsProvider extends ChangeNotifier {
 
     if (difference == 0) return l10n?.today ?? 'Today';
     if (difference == 1) return l10n?.yesterday ?? 'Yesterday';
+
+    final locale = l10n?.localeName ?? 'en';
+    final formatter = DateFormatter(locale);
+
     if (difference < 7) {
-      final weekdays = [
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-        'Sunday',
-      ];
-      return weekdays[mealDate.weekday - 1];
+      return formatter.formatWeekday(mealDate);
     }
     if (date.year == now.year) {
-      return '${_getMonthName(date.month)} ${date.day}';
+      return formatter.formatShortDate(mealDate);
     }
-    return '${_getMonthName(date.month)} ${date.day}, ${date.year}';
-  }
-
-  String _getMonthName(int month) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[month - 1];
+    return formatter.formatFullDate(mealDate);
   }
 
   Future<void> _loadMetricsForMeals(List<Meal> meals) async {

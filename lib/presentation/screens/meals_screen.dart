@@ -293,7 +293,7 @@ class _MealsScreenState extends State<MealsScreen>
             Text(
               water == null
                   ? '${context.l10n.waterLabel}: ${context.l10n.waterDash}'
-                  : context.l10n.waterAmountWithGoal(_formatWater(water)) +
+                  : context.l10n.waterAmountWithGoal(water.round().toString()) +
                         (isGoalMet ? ' (${context.l10n.goalMetSuffix})' : ''),
               style: theme.textTheme.labelMedium?.copyWith(
                 color: colorScheme.onSurface,
@@ -530,8 +530,4 @@ class _MealPreviewSheet extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatWater(double value) {
-  return value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
 }

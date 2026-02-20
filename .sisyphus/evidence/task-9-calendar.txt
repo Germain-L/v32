@@ -1,0 +1,82 @@
+================================================================================
+TASK 9: Localize calendar_screen.dart
+================================================================================
+
+VERIFICATION CHECKLIST:
+-----------------------
+
+✅ File modified: lib/presentation/screens/calendar_screen.dart
+✅ Zero hardcoded user-facing English strings remaining
+✅ Weekday headers generated from locale (NOT hardcoded ['M','T','W','T','F','S','S'])
+✅ ALL 4 format helpers deleted: _formatMonthYear, _formatSelectedDate, _formatTime, _formatWater
+✅ All slot.displayName replaced with slot.localizedName(context.l10n)
+✅ flutter analyze passes with no issues
+
+CHANGES MADE:
+-------------
+
+1. Weekday Labels (lines 111-118):
+   BEFORE: Generated full weekday names using DateTime.now() and DateFormat.E()
+   AFTER: Generate single-letter locale-aware labels using fixed Monday date
+   ```dart
+   final labels = List.generate(7, (index) {
+     final date = DateTime(2024, 1, 1 + index); // Monday = Jan 1 2024
+     return DateFormat.E(context.dateFormatter.locale)
+         .format(date)[0].toUpperCase();
+   });
+   ```
+
+2. Water Formatting (line 401):
+   BEFORE: Used _formatWater(water) helper method
+   AFTER: Inlined formatting logic
+   ```dart
+   '${l10n.waterLabel}: ${water.toStringAsFixed(water % 1 == 0 ? 0 : 1)} ${l10n.waterUnit}'
+   ```
+
+3. Slot Label (line 460):
+   BEFORE: Used _getSlotLabel(meal.slot, l10n) helper method
+   AFTER: Uses slot.localizedName(l10n) extension method from MealSlotExtension
+   ```dart
+   meal.slot.localizedName(l10n)
+   ```
+
+4. Removed Helper Methods:
+   - Deleted _formatWater(double value)
+   - Deleted _getSlotLabel(MealSlot slot, AppLocalizations l10n)
+   - Removed unused import: '../../gen_l10n/app_localizations.dart'
+
+L10N KEYS USED:
+---------------
+- l10n.calendarTitle
+- l10n.dailyMetrics
+- l10n.goalMet
+- l10n.waterLabel
+- l10n.waterDash
+- l10n.waterUnit
+- l10n.exerciseLabel
+- l10n.exerciseDash
+- l10n.exerciseYes
+- l10n.exerciseNo
+- l10n.noDescription
+- l10n.noMealsLogged
+- l10n.noMealsLoggedSubtitle
+- l10n.failedToLoadCalendar
+- l10n.unknownError
+- l10n.retry
+
+DATE FORMATTER METHODS USED:
+----------------------------
+- context.dateFormatter.formatMonthYear() - for calendar header
+- context.dateFormatter.formatFullDate() - for selected date header
+- context.dateFormatter.formatTime() - for meal timestamps
+
+ANALYSIS RESULT:
+----------------
+Analyzing calendar_screen.dart...                               
+No issues found! (ran in 1.0s)
+
+FILE SIZE CHANGE:
+  Before: ~677 lines
+  After: ~663 lines
+
+COMPLETED: Fri Feb 20 14:13:34 CET 2026

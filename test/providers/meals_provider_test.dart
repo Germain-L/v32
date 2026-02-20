@@ -1,9 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:v32/data/models/meal.dart';
 import 'package:v32/presentation/providers/meals_provider.dart';
 import '../fakes/fake_meal_repository.dart';
 
 void main() {
+  setUpAll(() async {
+    await initializeDateFormatting('en', null);
+  });
   test('loadMoreMeals dedupes by id and updates cursor', () async {
     final base = DateTime(2024, 3, 1, 8, 0);
     final repo = FakeMealRepository(
@@ -82,7 +86,7 @@ void main() {
     final now = DateTime.now();
     final date = DateTime(now.year, 1, 5);
     final label = provider.getFormattedDateGroup(date);
-    expect(label, contains('January'));
+    expect(label, contains('Jan'));
     expect(label, contains('5'));
   });
 

@@ -204,7 +204,9 @@ class _DayDetailPageState extends State<DayDetailPage>
         }
         final waterText = _provider.waterLiters == null
             ? ''
-            : _formatWater(_provider.waterLiters!);
+            : (_provider.waterLiters! * 1000).toStringAsFixed(
+                _provider.waterLiters! % 1 == 0 ? 0 : 1,
+              );
         if (_waterController.text != waterText && !_waterFocusNode.hasFocus) {
           _waterController.value = _waterController.value.copyWith(
             text: waterText,
@@ -397,7 +399,11 @@ class _DayDetailPageState extends State<DayDetailPage>
     final goalMet = _provider.isWaterGoalMet;
     final waterLabel = _provider.waterLiters == null
         ? l10n.notLogged
-        : '${_formatWater(_provider.waterLiters!)} L';
+        : l10n.waterAmount(
+            (_provider.waterLiters! * 1000).toStringAsFixed(
+              _provider.waterLiters! % 1 == 0 ? 0 : 1,
+            ),
+          );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
@@ -483,8 +489,8 @@ class _DayDetailPageState extends State<DayDetailPage>
                     onChanged: _provider.updateWaterLiters,
                     decoration: InputDecoration(
                       isDense: true,
-                      suffixText: 'L',
-                      hintText: '0.0',
+                      suffixText: l10n.waterUnit,
+                      hintText: '0',
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 8,
@@ -570,10 +576,6 @@ class _DayDetailPageState extends State<DayDetailPage>
       3 => colorScheme.primary,
       _ => colorScheme.outline,
     };
-  }
-
-  String _formatWater(double value) {
-    return value.toStringAsFixed(value % 1 == 0 ? 0 : 1);
   }
 
   Widget _buildStaggeredItem(Widget child, int index) {

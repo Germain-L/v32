@@ -1,0 +1,132 @@
+================================================================================
+BUILD PIPELINE VERIFICATION EVIDENCE
+Task 12: Comprehensive Verification
+Generated: 2026-02-20
+================================================================================
+
+1. FLUTTER GEN-L10N
+--------------------------------------------------------------------------------
+Command: flutter gen-l10n
+Exit Code: 0
+Output:
+  Because l10n.yaml exists, the options defined there will be used instead.
+  To use the command line arguments, delete the l10n.yaml file in the Flutter project.
+
+Status: SUCCESS - Localization files regenerated successfully
+
+================================================================================
+
+2. FLUTTER ANALYZE
+--------------------------------------------------------------------------------
+Command: flutter analyze
+Exit Code: 0
+Output:
+  Analyzing diet...                                               
+  No issues found! (ran in 2.4s)
+
+Status: SUCCESS - No lint issues found
+
+================================================================================
+
+3. FLUTTER TEST
+--------------------------------------------------------------------------------
+Command: flutter test
+Exit Code: 0
+Output:
+  00:00 +0: loading /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart
+  00:00 +0: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: (setUpAll)
+  00:00 +0: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: loadMoreMeals dedupes by id and updates cursor
+  00:00 +1: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: loadMoreMeals toggles hasMore when empty
+  00:00 +2: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: loadMoreMeals sets error on repository failure
+  00:00 +3: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: refresh clears state and reloads
+  00:00 +4: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: getFormattedDateGroup formats weekday within last week
+  00:00 +5: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: getFormattedDateGroup formats current year dates
+  00:00 +6: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: getFormattedDateGroup formats older year dates
+  00:00 +7: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: getFormattedDateGroup formats relative labels
+  00:00 +8: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: (tearDownAll)
+  00:00 +8: /Users/g.leignel/projects/personal/diet/test/providers/calendar_provider_test.dart: selectDate normalizes and updates focused month
+  00:00 +9: /Users/g.leignel/projects/personal/diet/test/providers/calendar_provider_test.dart: selectDate no-ops for same day
+  00:00 +10: /Users/g.leignel/projects/personal/diet/test/providers/calendar_provider_test.dart: goToPreviousMonth and goToNextMonth update selection
+  00:00 +11: /Users/g.leignel/projects/personal/diet/test/providers/calendar_provider_test.dart: refresh reloads month and day
+  00:00 +12: /Users/g.leignel/projects/personal/diet/test/providers/calendar_provider_test.dart: hasMealsForDate reflects month map
+  00:00 +13: /Users/g.leignel/projects/personal/diet/test/providers/calendar_provider_test.dart: loadMonth handles repository error
+  00:00 +14: /Users/g.leignel/projects/personal/diet/test/providers/calendar_provider_test.dart: selected meals are sorted ascending by time
+  00:00 +15: /Users/g.leignel/projects/personal/diet/test/providers/today_provider_test.dart: loadTodayMeals maps meals into slots and descriptions
+  00:00 +16: /Users/g.leignel/projects/personal/diet/test/providers/today_provider_test.dart: updateDescription creates new meal when none exists
+  00:00 +17: /Users/g.leignel/projects/personal/diet/test/providers/today_provider_test.dart: updateDescription does not create meal for empty text
+  00:00 +18: /Users/g.leignel/projects/personal/diet/test/providers/today_provider_test.dart: saveDescriptionNow updates existing meal
+  00:00 +19: /Users/g.leignel/projects/personal/diet/test/providers/today_provider_test.dart: saveDescriptionNow handles repository error
+  00:00 +20: /Users/g.leignel/projects/personal/diet/test/providers/today_provider_test.dart: clearMeal removes stored meal and resets description
+  00:00 +21: /Users/g.leignel/projects/personal/diet/test/providers/today_provider_test.dart: deletePhoto clears imagePath on meal
+  00:00 +22: /Users/g.leignel/projects/personal/diet/test/providers/today_provider_test.dart: clearMeal prevents pending save from persisting
+  00:00 +23: /Users/g.leignel/projects/personal/diet/test/data/meal_model_test.dart: MealSlot displayName maps to labels
+  00:00 +24: /Users/g.leignel/projects/personal/diet/test/data/meal_model_test.dart: Meal toMap and fromMap round-trip
+  00:00 +25: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: loadMoreMeals dedupes by id and updates cursor
+  00:00 +26: /Users/g.leignel/projects/personal/diet/test/providers/meals_provider_test.dart: loadMoreMeals toggles hasMore when empty
+  00:00 +27: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_edge_test.dart: (setUpAll)
+  00:00 +27: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_edge_test.dart: getMealsForMonth spans month boundaries
+  00:00 +28: /Users/g.leignel/projects/personal/diet/test/data/meal_model_test.dart: Meal copyWith preserves imagePath when unset
+  00:00 +29: /Users/g.leignel/projects/personal/diet/test/data/meal_model_test.dart: Meal copyWith clears imagePath when null
+  00:00 +30: /Users/g.leignel/projects/personal/diet/test/data/meal_model_test.dart: Meal hasImage is false for null or empty
+  00:00 +31: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_edge_test.dart: getMealsBefore uses limit and ordering
+  00:00 +32: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_edge_test.dart: (tearDownAll)
+  00:00 +32: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_test.dart: (setUpAll)
+  00:00 +32: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_test.dart: saveMeal inserts when id is null
+  00:00 +33: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_test.dart: saveMeal updates when id is provided
+  00:00 +34: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_test.dart: getMealsForDate includes start and excludes next day
+  00:00 +35: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_test.dart: getMealsBeforeCursor uses date and id ordering
+  00:00 +36: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_test.dart: hasMealsForDate returns true when meals exist
+  00:00 +37: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_test.dart: watchTodayMeals emits on change notification
+  00:00 +38: /Users/g.leignel/projects/personal/diet/test/data/meal_repository_test.dart: (tearDownAll)
+  00:00 +38: /Users/g.leignel/projects/personal/diet/test/services/database_service_test.dart: (setUpAll)
+  00:00 +38: /Users/g.leignel/projects/personal/diet/test/services/database_service_test.dart: useInMemoryDatabaseForTesting initializes schema
+  00:00 +39: /Users/g.leignel/projects/personal/diet/test/services/database_service_test.dart: notifyChange emits on dbChanges stream
+  00:00 +40: /Users/g.leignel/projects/personal/diet/test/services/database_service_test.dart: close completes dbChanges stream
+  00:00 +41: /Users/g.leignel/projects/personal/diet/test/services/database_service_test.dart: watchTable only emits for matching table
+  00:00 +42: /Users/g.leignel/projects/personal/diet/test/services/database_service_test.dart: watchTable only emits for matching table
+  00:00 +43: /Users/g.leignel/projects/personal/diet/test/services/database_service_test.dart: watchTable only emits for matching table
+  00:00 +44: /Users/g.leignel/projects/personal/diet/test/services/image_storage_service_test.dart: saveImage stores file and imageExists returns true
+  00:00 +45: /Users/g.leignel/projects/personal/diet/test/services/image_storage_service_test.dart: cleanupOrphanedImages deletes unreferenced files
+  00:00 +46: /Users/g.leignel/projects/personal/diet/test/services/image_storage_service_test.dart: getTotalStorageSize returns non-zero for saved images
+  00:00 +46: All tests passed!
+
+Status: SUCCESS - All 46 tests passed (note: initial run had 3 failures due to 
+missing intl locale initialization; fixed by adding initializeDateFormatting 
+to test setup)
+
+================================================================================
+
+4. DART FORMAT
+--------------------------------------------------------------------------------
+Command: dart format --set-exit-if-changed .
+Exit Code: 0
+Output:
+  Formatted 39 files (0 changed) in 0.22 seconds.
+
+Status: SUCCESS - All files properly formatted
+
+================================================================================
+
+5. ARB KEY PARITY CHECK
+--------------------------------------------------------------------------------
+Command: python3 -c "import json; en=json.load(open('lib/l10n/app_en.arb')); fr=json.load(open('lib/l10n/app_fr.arb')); en_keys=set(k for k in en if not k.startswith('@')); fr_keys=set(k for k in fr if not k.startswith('@')); missing=en_keys-fr_keys; extra=fr_keys-en_keys; print(f'EN keys: {len(en_keys)}'); print(f'FR keys: {len(fr_keys)}'); print(f'Missing in FR: {missing}'); print(f'Extra in FR: {extra}'); assert not missing and not extra, 'Key mismatch!'"
+Exit Code: 0
+Output:
+  EN keys: 75
+  FR keys: 75
+  Missing in FR: set()
+  Extra in FR: set()
+
+Status: SUCCESS - All 75 keys match between EN and FR
+
+================================================================================
+
+SUMMARY
+--------------------------------------------------------------------------------
+✅ flutter gen-l10n - PASSED
+✅ flutter analyze - PASSED (No issues found!)
+✅ flutter test - PASSED (46/46 tests)
+✅ dart format - PASSED (0 files changed)
+✅ ARB key parity - PASSED (75/75 keys match)
+
+All build pipeline checks completed successfully!
