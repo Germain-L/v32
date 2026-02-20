@@ -173,7 +173,7 @@ class _MealsScreenState extends State<MealsScreen>
       onRefresh: _provider.refresh,
       child: ListView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.only(top: 8, bottom: 24),
         itemCount:
             feedItems.length +
             (_provider.hasMore || _provider.isLoading ? 1 : 0),
@@ -450,7 +450,7 @@ class _MealPreviewSheet extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: AspectRatio(
-                aspectRatio: 4 / 5,
+                aspectRatio: 4 / 3,
                 child: Image.file(File(meal.imagePath!), fit: BoxFit.cover),
               ),
             )

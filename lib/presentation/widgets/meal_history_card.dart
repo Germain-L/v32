@@ -14,22 +14,24 @@ class MealHistoryCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Material(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(theme, colorScheme),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               if (meal.hasImage && meal.imagePath != null) ...[
                 _buildImagePreview(context),
-                const SizedBox(height: 10),
-                _buildCaption(theme, colorScheme),
+                if (meal.description?.isNotEmpty == true) ...[
+                  const SizedBox(height: 8),
+                  _buildCaption(theme, colorScheme),
+                ],
               ] else
                 _buildTextOnlyPreview(theme, colorScheme),
             ],
@@ -71,7 +73,7 @@ class MealHistoryCard extends StatelessWidget {
 
     if (meal.hasImage && meal.imagePath != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: AspectRatio(
           aspectRatio: 4 / 5,
           child: Image.file(
@@ -92,14 +94,14 @@ class MealHistoryCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: AspectRatio(
         aspectRatio: 4 / 5,
         child: Center(
           child: Icon(
             Icons.restaurant_outlined,
-            size: 42,
+            size: 36,
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
           ),
         ),
@@ -111,16 +113,13 @@ class MealHistoryCard extends StatelessWidget {
     final hasCaption = meal.description?.isNotEmpty == true;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
       child: Text(
-        hasCaption ? meal.description! : 'No description',
+        meal.description!,
         maxLines: 3,
         overflow: TextOverflow.ellipsis,
         style: theme.textTheme.bodyMedium?.copyWith(
-          color: hasCaption
-              ? colorScheme.onSurface
-              : colorScheme.onSurfaceVariant,
-          fontStyle: hasCaption ? FontStyle.normal : FontStyle.italic,
+          color: colorScheme.onSurface,
           height: 1.4,
         ),
       ),
@@ -130,29 +129,19 @@ class MealHistoryCard extends StatelessWidget {
   Widget _buildTextOnlyPreview(ThemeData theme, ColorScheme colorScheme) {
     final hasCaption = meal.description?.isNotEmpty == true;
 
+    if (!hasCaption) {
+      return _buildPlaceholder(colorScheme);
+    }
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-          ),
-        ),
-        child: Text(
-          hasCaption ? meal.description! : 'No description',
-          maxLines: 5,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: hasCaption
-                ? colorScheme.onSurface
-                : colorScheme.onSurfaceVariant,
-            fontStyle: hasCaption ? FontStyle.normal : FontStyle.italic,
-            height: 1.45,
-          ),
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+      child: Text(
+        meal.description!,
+        maxLines: 4,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurface,
+          height: 1.4,
         ),
       ),
     );
