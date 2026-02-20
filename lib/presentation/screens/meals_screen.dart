@@ -243,11 +243,11 @@ class _MealsScreenState extends State<MealsScreen>
     if (metrics == null) {
       return const SizedBox.shrink();
     }
-    final water = metrics?.waterLiters;
-    final exerciseDone = metrics?.exerciseDone == true;
-    final note = metrics?.exerciseNote;
+    final water = metrics.waterLiters;
+    final exerciseDone = metrics.exerciseDone == true;
+    final note = metrics.exerciseNote;
     final isGoalMet = (water ?? 0) >= 1.5;
-    final exerciseLabel = metrics == null ? '—' : (exerciseDone ? 'Yes' : 'No');
+    final exerciseLabel = exerciseDone ? 'Yes' : 'No';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
@@ -365,20 +365,10 @@ class _MealsScreenState extends State<MealsScreen>
   List<_FeedItem> _buildFeedItems(List<Meal> meals) {
     if (meals.isEmpty) return [];
 
-    final sortedMeals = meals.toList()
-      ..sort((a, b) {
-        final dayCompare = _compareDayDesc(a.date, b.date);
-        if (dayCompare != 0) return dayCompare;
-
-        final slotCompare = _slotOrder(b.slot).compareTo(_slotOrder(a.slot));
-        if (slotCompare != 0) return slotCompare;
-
-        return b.date.compareTo(a.date);
-      });
     final items = <_FeedItem>[];
     DateTime? currentDate;
 
-    for (final meal in sortedMeals) {
+    for (final meal in meals) {
       if (currentDate == null || !_isSameDay(currentDate, meal.date)) {
         currentDate = meal.date;
         items.add(
@@ -394,21 +384,6 @@ class _MealsScreenState extends State<MealsScreen>
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
-  int _compareDayDesc(DateTime a, DateTime b) {
-    final aDate = DateTime(a.year, a.month, a.day);
-    final bDate = DateTime(b.year, b.month, b.day);
-    return bDate.compareTo(aDate);
-  }
-
-  int _slotOrder(MealSlot slot) {
-    return switch (slot) {
-      MealSlot.breakfast => 0,
-      MealSlot.lunch => 1,
-      MealSlot.afternoonSnack => 2,
-      MealSlot.dinner => 3,
-    };
   }
 
   void _onMealTap(Meal meal) {

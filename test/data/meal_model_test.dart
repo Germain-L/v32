@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:diet/data/models/meal.dart';
+import 'package:v32/data/models/meal.dart';
 
 void main() {
   test('MealSlot displayName maps to labels', () {

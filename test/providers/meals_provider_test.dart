@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:diet/data/models/meal.dart';
-import 'package:diet/presentation/providers/meals_provider.dart';
+import 'package:v32/data/models/meal.dart';
+import 'package:v32/presentation/providers/meals_provider.dart';
 import '../fakes/fake_meal_repository.dart';
 
 void main() {

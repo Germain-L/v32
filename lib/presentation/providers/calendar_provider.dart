@@ -93,24 +93,29 @@ class CalendarProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
+    final targetMonth = _focusedMonth;
+
     try {
       final mealsFuture = _repository.getMealsForMonth(
-        _focusedMonth.year,
-        _focusedMonth.month,
+        targetMonth.year,
+        targetMonth.month,
       );
       final ratingsFuture = _ratingRepository.getRatingsForMonth(
-        _focusedMonth.year,
-        _focusedMonth.month,
+        targetMonth.year,
+        targetMonth.month,
       );
       final metricsFuture = _metricsRepository.getMetricsForMonth(
-        _focusedMonth.year,
-        _focusedMonth.month,
+        targetMonth.year,
+        targetMonth.month,
       );
       final results = await Future.wait([
         mealsFuture,
         ratingsFuture,
         metricsFuture,
       ]);
+      if (targetMonth != _focusedMonth) {
+        return;
+      }
       final meals = results[0] as List<Meal>;
       final ratings = results[1] as Map<String, int>;
       final metrics = results[2] as Map<String, DailyMetrics>;
@@ -136,12 +141,16 @@ class CalendarProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
 
+    final targetDate = _selectedDate;
+
     try {
-      _selectedMeals = await _repository.getMealsForDate(_selectedDate);
-      _selectedMeals.sort((a, b) => a.date.compareTo(b.date));
-      _selectedMetrics = await _metricsRepository.getMetricsForDate(
-        _selectedDate,
-      );
+      final meals = await _repository.getMealsForDate(targetDate);
+      final metrics = await _metricsRepository.getMetricsForDate(targetDate);
+      if (targetDate != _selectedDate) {
+        return;
+      }
+      _selectedMeals = meals..sort((a, b) => a.date.compareTo(b.date));
+      _selectedMetrics = metrics;
     } catch (e) {
       _error = 'Failed to load meals: $e';
     } finally {

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:diet/data/services/database_service.dart';
+import 'package:v32/data/services/database_service.dart';
 
 void main() {
   setUpAll(() {
@@ -41,8 +41,24 @@ void main() {
     final done = Completer<void>();
     DatabaseService.dbChanges.listen((_) {}, onDone: () => done.complete());
 
-    await DatabaseService.close();
+    await DatabaseService.close(closeStreams: true);
 
     await done.future;
+  });
+
+  test('watchTable only emits for matching table', () async {
+    await DatabaseService.resetForTesting();
+    await DatabaseService.useInMemoryDatabaseForTesting();
+    final iterator = StreamIterator(DatabaseService.watchTable('meals'));
+
+    final moveNextFuture = iterator.moveNext();
+    await DatabaseService.notifyChange(table: 'daily_metrics');
+
+    final didEmit = await moveNextFuture.timeout(
+      const Duration(milliseconds: 50),
+      onTimeout: () => false,
+    );
+    expect(didEmit, isFalse);
+    await iterator.cancel();
   });
 }

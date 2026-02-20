@@ -11,7 +11,7 @@ class DayRatingRepository {
       DayRating(date: normalized, score: score).toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    await DatabaseService.notifyChange();
+    await DatabaseService.notifyChange(table: 'day_ratings');
   }
 
   Future<int?> getRatingForDate(DateTime date) async {

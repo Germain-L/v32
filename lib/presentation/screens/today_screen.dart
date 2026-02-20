@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
@@ -53,21 +54,33 @@ class _TodayScreenState extends State<TodayScreen>
 
   @override
   void dispose() {
+    unawaited(_disposeAsync());
+    _disposeControllers();
+    _disposeFocusNodes();
+    _listController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _disposeAsync() async {
     if (_ownsProvider) {
-      _provider.dispose();
+      await _provider.flushAndDispose();
     }
+  }
+
+  void _disposeControllers() {
     for (final controller in _controllers.values) {
       controller.dispose();
     }
+    _waterController.dispose();
+    _exerciseNoteController.dispose();
+  }
+
+  void _disposeFocusNodes() {
     for (final node in _focusNodes.values) {
       node.dispose();
     }
-    _waterController.dispose();
-    _exerciseNoteController.dispose();
     _waterFocusNode.dispose();
     _exerciseNoteFocusNode.dispose();
-    _listController.dispose();
-    super.dispose();
   }
 
   @override

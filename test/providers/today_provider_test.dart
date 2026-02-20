@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:diet/data/models/meal.dart';
-import 'package:diet/presentation/providers/today_provider.dart';
+import 'package:v32/data/models/meal.dart';
+import 'package:v32/presentation/providers/today_provider.dart';
 import '../fakes/fake_day_rating_repository.dart';
 import '../fakes/fake_meal_repository.dart';
 
@@ -65,10 +65,9 @@ void main() {
     final provider = TodayProvider(repo, FakeDayRatingRepository());
 
     provider.updateDescription(MealSlot.dinner, 'Pasta');
-    await expectLater(
-      () => provider.saveDescriptionNow(MealSlot.dinner),
-      throwsException,
-    );
+    await provider.saveDescriptionNow(MealSlot.dinner);
+
+    expect(provider.error, isNotNull);
   });
 
   test('clearMeal removes stored meal and resets description', () async {

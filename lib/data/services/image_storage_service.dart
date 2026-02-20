@@ -27,6 +27,7 @@ class ImageStorageService {
     File sourceFile, {
     int maxWidth = 1200,
     int quality = 85,
+    int maxBytes = 12 * 1024 * 1024,
   }) async {
     try {
       final dir = await _directory;
@@ -37,13 +38,41 @@ class ImageStorageService {
 
       // Read and decode image
       final bytes = await sourceFile.readAsBytes();
-      img.Image? image = img.decodeImage(bytes);
+      if (bytes.lengthInBytes > maxBytes) {
+        return null;
+      }
+
+      final decoder = img.findDecoderForNamedImage(sourceFile.path);
+      img.Image? image;
+      if (decoder != null) {
+        final info = decoder.startDecode(bytes);
+        if (info == null) return null;
+        final targetWidth = info.width > maxWidth ? maxWidth : info.width;
+        final scale = targetWidth / info.width;
+        final targetHeight = (info.height * scale).round();
+        image = decoder.decodeFrame(0);
+        if (image == null) return null;
+        if (image.width > targetWidth) {
+          image = img.copyResize(
+            image,
+            width: targetWidth,
+            height: targetHeight,
+            interpolation: img.Interpolation.linear,
+          );
+        }
+      } else {
+        image = img.decodeImage(bytes);
+      }
 
       if (image == null) return null;
 
       // Resize if too large
       if (image.width > maxWidth) {
-        image = img.copyResize(image, width: maxWidth);
+        image = img.copyResize(
+          image,
+          width: maxWidth,
+          interpolation: img.Interpolation.linear,
+        );
       }
 
       // Compress and save

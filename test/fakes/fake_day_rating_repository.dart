@@ -1,4 +1,4 @@
-import 'package:diet/data/repositories/day_rating_repository.dart';
+import 'package:v32/data/repositories/day_rating_repository.dart';
 
 class FakeDayRatingRepository extends DayRatingRepository {
   FakeDayRatingRepository({int? initialRating}) : _rating = initialRating;

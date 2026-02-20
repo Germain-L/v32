@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:diet/data/models/meal.dart';
-import 'package:diet/data/repositories/meal_repository.dart';
-import 'package:diet/data/services/database_service.dart';
+import 'package:v32/data/models/meal.dart';
+import 'package:v32/data/repositories/meal_repository.dart';
+import 'package:v32/data/services/database_service.dart';
 
 void main() {
   late MealRepository repository;

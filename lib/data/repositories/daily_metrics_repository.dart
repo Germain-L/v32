@@ -20,7 +20,7 @@ class DailyMetricsRepository {
       ).toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    await DatabaseService.notifyChange();
+    await DatabaseService.notifyChange(table: 'daily_metrics');
   }
 
   Future<DailyMetrics?> getMetricsForDate(DateTime date) async {
@@ -89,7 +89,7 @@ class DailyMetricsRepository {
       where: 'date = ?',
       whereArgs: [normalized.millisecondsSinceEpoch],
     );
-    await DatabaseService.notifyChange();
+    await DatabaseService.notifyChange(table: 'daily_metrics');
   }
 
   String _dateKey(DateTime date) {

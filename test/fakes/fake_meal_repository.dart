@@ -1,5 +1,5 @@
-import 'package:diet/data/models/meal.dart';
-import 'package:diet/data/repositories/meal_repository.dart';
+import 'package:v32/data/models/meal.dart';
+import 'package:v32/data/repositories/meal_repository.dart';
 
 class FakeMealRepository extends MealRepository {
   FakeMealRepository({

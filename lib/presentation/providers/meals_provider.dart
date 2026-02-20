@@ -17,6 +17,7 @@ class MealsProvider extends ChangeNotifier {
   bool _hasMore = true;
   String? _error;
   final Map<String, DailyMetrics> _metricsByDate = {};
+  final Set<String> _metricsFetchedDates = {};
 
   MealsProvider(
     this._repository, {
@@ -91,6 +92,7 @@ class MealsProvider extends ChangeNotifier {
     _hasMore = true;
     _error = null;
     _metricsByDate.clear();
+    _metricsFetchedDates.clear();
     notifyListeners();
     await loadMoreMeals();
   }
@@ -146,21 +148,72 @@ class MealsProvider extends ChangeNotifier {
 
   Future<void> _loadMetricsForMeals(List<Meal> meals) async {
     if (meals.isEmpty) return;
-    final dates = meals.map((meal) => meal.date).toList();
-    dates.sort((a, b) => a.compareTo(b));
-    final start = DateTime(
-      dates.first.year,
-      dates.first.month,
-      dates.first.day,
-    );
-    final end = DateTime(dates.last.year, dates.last.month, dates.last.day);
-    final metrics = await _metricsRepository.getMetricsForRange(start, end);
-    if (metrics.isNotEmpty) {
-      _metricsByDate.addAll(metrics);
+    final uniqueDates = <DateTime>{};
+    for (final meal in meals) {
+      uniqueDates.add(_normalizeDate(meal.date));
     }
+    final missingDates = uniqueDates.where((date) {
+      return !_metricsFetchedDates.contains(_dateKey(date));
+    }).toList();
+    if (missingDates.isEmpty) return;
+    missingDates.sort((a, b) => a.compareTo(b));
+    final ranges = _buildDateRanges(missingDates);
+    for (final range in ranges) {
+      final metrics = await _metricsRepository.getMetricsForRange(
+        range.start,
+        range.end,
+      );
+      if (metrics.isNotEmpty) {
+        _metricsByDate.addAll(metrics);
+      }
+      _markFetchedRange(range.start, range.end);
+    }
+  }
+
+  DateTime _normalizeDate(DateTime date) {
+    return DateTime(date.year, date.month, date.day);
+  }
+
+  List<_DateRange> _buildDateRanges(List<DateTime> sortedDates) {
+    if (sortedDates.isEmpty) return [];
+    final ranges = <_DateRange>[];
+    var start = sortedDates.first;
+    var previous = sortedDates.first;
+    for (var i = 1; i < sortedDates.length; i++) {
+      final current = sortedDates[i];
+      final isContiguous =
+          current.difference(previous).inDays == 1 &&
+          _isSameDay(previous.add(const Duration(days: 1)), current);
+      if (!isContiguous) {
+        ranges.add(_DateRange(start: start, end: previous));
+        start = current;
+      }
+      previous = current;
+    }
+    ranges.add(_DateRange(start: start, end: previous));
+    return ranges;
+  }
+
+  void _markFetchedRange(DateTime start, DateTime end) {
+    var cursor = start;
+    while (!cursor.isAfter(end)) {
+      _metricsFetchedDates.add(_dateKey(cursor));
+      cursor = cursor.add(const Duration(days: 1));
+    }
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   String _dateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
+}
+
+class _DateRange {
+  final DateTime start;
+  final DateTime end;
+
+  const _DateRange({required this.start, required this.end});
 }

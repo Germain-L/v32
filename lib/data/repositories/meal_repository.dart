@@ -8,7 +8,7 @@ class MealRepository {
     final db = await DatabaseService.database;
     if (meal.id == null) {
       final id = await db.insert('meals', meal.toMap()..remove('id'));
-      await DatabaseService.notifyChange();
+      await DatabaseService.notifyChange(table: 'meals');
       return meal.copyWith(id: id);
     } else {
       await db.update(
@@ -18,7 +18,7 @@ class MealRepository {
         whereArgs: [meal.id],
       );
     }
-    await DatabaseService.notifyChange();
+    await DatabaseService.notifyChange(table: 'meals');
     return meal;
   }
 
@@ -41,7 +41,7 @@ class MealRepository {
     }
 
     await batch.commit(noResult: true);
-    await DatabaseService.notifyChange();
+    await DatabaseService.notifyChange(table: 'meals');
   }
 
   // Get by ID
@@ -57,7 +57,7 @@ class MealRepository {
   Future<void> deleteMeal(int id) async {
     final db = await DatabaseService.database;
     await db.delete('meals', where: 'id = ?', whereArgs: [id]);
-    await DatabaseService.notifyChange();
+    await DatabaseService.notifyChange(table: 'meals');
   }
 
   // Today's meals
@@ -73,7 +73,7 @@ class MealRepository {
     yield await loadForToday();
 
     // Watch for changes
-    await for (final _ in DatabaseService.dbChanges) {
+    await for (final _ in DatabaseService.watchTable('meals')) {
       yield await loadForToday();
     }
   }

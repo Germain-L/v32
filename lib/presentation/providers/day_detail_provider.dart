@@ -24,6 +24,7 @@ class DayDetailProvider extends ChangeNotifier {
   final Map<MealSlot, bool> _hasPendingDescriptionSave = {};
   final Map<MealSlot, bool> _isClearing = {};
   String? _error;
+  bool _isDisposed = false;
   int? _dayRating;
   double? _waterLiters;
   bool? _exerciseDone;
@@ -77,20 +78,20 @@ class DayDetailProvider extends ChangeNotifier {
         _descriptions[slot] = _meals[slot]?.description ?? '';
       }
 
-      notifyListeners();
+      _notifyIfMounted();
     } catch (e) {
       _error = 'Failed to load meals: $e';
-      notifyListeners();
+      _notifyIfMounted();
     }
   }
 
   Future<void> loadDayRating() async {
     try {
       _dayRating = await _ratingRepository.getRatingForDate(_date);
-      notifyListeners();
+      _notifyIfMounted();
     } catch (e) {
       _error = 'Failed to load day rating: $e';
-      notifyListeners();
+      _notifyIfMounted();
     }
   }
 
@@ -100,23 +101,23 @@ class DayDetailProvider extends ChangeNotifier {
       _waterLiters = metrics?.waterLiters;
       _exerciseDone = metrics?.exerciseDone;
       _exerciseNote = metrics?.exerciseNote ?? '';
-      notifyListeners();
+      _notifyIfMounted();
     } catch (e) {
       _error = 'Failed to load daily metrics: $e';
-      notifyListeners();
+      _notifyIfMounted();
     }
   }
 
   void updateWaterLiters(String input) {
     _waterLiters = _parseWaterInput(input);
     _scheduleMetricsSave();
-    notifyListeners();
+    _notifyIfMounted();
   }
 
   void updateExerciseDone(bool value) {
     _exerciseDone = value;
     _scheduleMetricsSave(immediate: true);
-    notifyListeners();
+    _notifyIfMounted();
   }
 
   void updateExerciseNote(String note) {
@@ -125,22 +126,22 @@ class DayDetailProvider extends ChangeNotifier {
       _exerciseDone = true;
     }
     _scheduleMetricsSave();
-    notifyListeners();
+    _notifyIfMounted();
   }
 
   Future<void> updateDayRating(int score) async {
     try {
       if (score < 1 || score > 3) {
         _error = 'Invalid day rating';
-        notifyListeners();
+        _notifyIfMounted();
         return;
       }
       _dayRating = score;
-      notifyListeners();
+      _notifyIfMounted();
       await _ratingRepository.saveRating(_date, score);
     } catch (e) {
       _error = 'Failed to save day rating: $e';
-      notifyListeners();
+      _notifyIfMounted();
     }
   }
 
@@ -172,6 +173,7 @@ class DayDetailProvider extends ChangeNotifier {
       await _saveMealWithImage(slot, savedPath);
     } catch (e) {
       _error = 'Failed to capture photo: $e';
+      _notifyIfMounted();
     } finally {
       _setLoading(slot, false);
     }
@@ -205,6 +207,7 @@ class DayDetailProvider extends ChangeNotifier {
       await _saveMealWithImage(slot, savedPath);
     } catch (e) {
       _error = 'Failed to pick image: $e';
+      _notifyIfMounted();
     } finally {
       _setLoading(slot, false);
     }
@@ -212,10 +215,6 @@ class DayDetailProvider extends ChangeNotifier {
 
   Future<void> _saveMealWithImage(MealSlot slot, String imagePath) async {
     final existingMeal = _meals[slot];
-
-    if (existingMeal != null && existingMeal.imagePath != null) {
-      await ImageStorageService.deleteImage(existingMeal.imagePath);
-    }
 
     final currentMeal = _meals[slot] ?? existingMeal;
 
@@ -234,11 +233,15 @@ class DayDetailProvider extends ChangeNotifier {
       }
       return;
     }
+    if (existingMeal?.imagePath != null &&
+        existingMeal?.imagePath != imagePath) {
+      await ImageStorageService.deleteImage(existingMeal?.imagePath);
+    }
     _meals[slot] = savedMeal;
     if (_hasPendingDescriptionSave[slot] == true) {
       await _saveDescription(slot);
     }
-    notifyListeners();
+    _notifyIfMounted();
   }
 
   Future<void> updateDescription(MealSlot slot, String description) async {
@@ -250,7 +253,7 @@ class DayDetailProvider extends ChangeNotifier {
       _saveDescription(slot);
     });
 
-    notifyListeners();
+    _notifyIfMounted();
   }
 
   Future<void> _saveDescription(MealSlot slot) async {
@@ -321,6 +324,9 @@ class DayDetailProvider extends ChangeNotifier {
           _meals[slot] = savedMeal;
         }
       }
+    } catch (e) {
+      _error = 'Failed to save meal: $e';
+      _notifyIfMounted();
     } finally {
       shouldRerun = _hasPendingDescriptionSave[slot] == true;
       _isSaving[slot] = false;
@@ -331,7 +337,7 @@ class DayDetailProvider extends ChangeNotifier {
       return;
     }
 
-    notifyListeners();
+    _notifyIfMounted();
   }
 
   Future<void> saveDescriptionNow(MealSlot slot) async {
@@ -347,18 +353,25 @@ class DayDetailProvider extends ChangeNotifier {
         await _saveDescription(slot);
       }
     }
+    if (_hasPendingMetricsSave) {
+      await _saveDailyMetrics();
+    }
   }
 
   Future<void> deletePhoto(MealSlot slot) async {
     final meal = _meals[slot];
     if (meal == null || meal.imagePath == null) return;
 
-    await ImageStorageService.deleteImage(meal.imagePath);
-
-    final updatedMeal = meal.copyWith(imagePath: null);
-    final savedMeal = await _repository.saveMeal(updatedMeal);
-    _meals[slot] = savedMeal;
-    notifyListeners();
+    try {
+      final updatedMeal = meal.copyWith(imagePath: null);
+      final savedMeal = await _repository.saveMeal(updatedMeal);
+      await ImageStorageService.deleteImage(meal.imagePath);
+      _meals[slot] = savedMeal;
+      _notifyIfMounted();
+    } catch (e) {
+      _error = 'Failed to delete photo: $e';
+      _notifyIfMounted();
+    }
   }
 
   Future<void> clearMeal(MealSlot slot) async {
@@ -372,15 +385,19 @@ class DayDetailProvider extends ChangeNotifier {
     _hasPendingDescriptionSave[slot] = false;
     _descriptions[slot] = '';
     _meals[slot] = null;
-    notifyListeners();
+    _notifyIfMounted();
 
     if (meal != null) {
-      if (meal.imagePath != null) {
-        await ImageStorageService.deleteImage(meal.imagePath);
-      }
-
-      if (meal.id != null) {
-        await _repository.deleteMeal(meal.id!);
+      try {
+        if (meal.id != null) {
+          await _repository.deleteMeal(meal.id!);
+        }
+        if (meal.imagePath != null) {
+          await ImageStorageService.deleteImage(meal.imagePath);
+        }
+      } catch (e) {
+        _error = 'Failed to clear meal: $e';
+        _notifyIfMounted();
       }
     }
 
@@ -389,7 +406,7 @@ class DayDetailProvider extends ChangeNotifier {
 
   void _setLoading(MealSlot slot, bool value) {
     _isLoading[slot] = value;
-    notifyListeners();
+    _notifyIfMounted();
     if (!value && _hasPendingDescriptionSave[slot] == true) {
       _saveDescription(slot);
     }
@@ -397,7 +414,7 @@ class DayDetailProvider extends ChangeNotifier {
 
   void clearError() {
     _error = null;
-    notifyListeners();
+    _notifyIfMounted();
   }
 
   void _scheduleMetricsSave({bool immediate = false}) {
@@ -445,7 +462,7 @@ class DayDetailProvider extends ChangeNotifier {
       }
     } catch (e) {
       _error = 'Failed to save daily metrics: $e';
-      notifyListeners();
+      _notifyIfMounted();
     } finally {
       _isSavingMetrics = false;
     }
@@ -456,6 +473,12 @@ class DayDetailProvider extends ChangeNotifier {
     }
 
     if (didDelete) {
+      _notifyIfMounted();
+    }
+  }
+
+  void _notifyIfMounted() {
+    if (!_isDisposed) {
       notifyListeners();
     }
   }
@@ -474,9 +497,14 @@ class DayDetailProvider extends ChangeNotifier {
     return DateTime(_date.year, _date.month, _date.day, now.hour, now.minute);
   }
 
+  Future<void> flushAndDispose() async {
+    _isDisposed = true;
+    await flushPendingSaves();
+  }
+
   @override
   void dispose() {
-    flushPendingSaves();
+    _isDisposed = true;
     for (final timer in _debounceTimers.values) {
       timer?.cancel();
     }

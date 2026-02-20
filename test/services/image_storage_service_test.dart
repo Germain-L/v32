@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:diet/data/services/image_storage_service.dart';
+import 'package:v32/data/services/image_storage_service.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 

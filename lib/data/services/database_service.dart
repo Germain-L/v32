@@ -8,12 +8,25 @@ class DatabaseService {
   static Database? _database;
   static StreamController<void> _dbChangeController =
       StreamController<void>.broadcast();
+  static StreamController<String> _tableChangeController =
+      StreamController<String>.broadcast();
 
   static Stream<void> get dbChanges => _dbChangeController.stream;
+  static Stream<String> get tableChanges => _tableChangeController.stream;
 
   static Future<Database> get database async {
+    _ensureControllers();
     _database ??= await _initDatabase();
     return _database!;
+  }
+
+  static void _ensureControllers() {
+    if (_dbChangeController.isClosed) {
+      _dbChangeController = StreamController<void>.broadcast();
+    }
+    if (_tableChangeController.isClosed) {
+      _tableChangeController = StreamController<String>.broadcast();
+    }
   }
 
   static Future<Database> _initDatabase() async {
@@ -104,22 +117,38 @@ class DatabaseService {
     }
   }
 
-  static Future<void> notifyChange() async {
-    if (_dbChangeController.isClosed) return;
-    _dbChangeController.add(null);
+  static Stream<void> watchTable(String table) {
+    _ensureControllers();
+    return _tableChangeController.stream
+        .where((name) => name == table)
+        .map((_) {});
   }
 
-  static Future<void> close() async {
+  static Future<void> notifyChange({String? table}) async {
+    _ensureControllers();
+    if (!_dbChangeController.isClosed) {
+      _dbChangeController.add(null);
+    }
+    if (table != null && !_tableChangeController.isClosed) {
+      _tableChangeController.add(table);
+    }
+  }
+
+  static Future<void> close({bool closeStreams = false}) async {
     if (_database != null) {
       await _database!.close();
       _database = null;
     }
-    await _dbChangeController.close();
+    if (closeStreams) {
+      await _dbChangeController.close();
+      await _tableChangeController.close();
+    }
   }
 
   @visibleForTesting
   static Future<void> resetForTesting() async {
-    await close();
+    await close(closeStreams: true);
     _dbChangeController = StreamController<void>.broadcast();
+    _tableChangeController = StreamController<String>.broadcast();
   }
 }
