@@ -1,0 +1,35 @@
+TASK: Create MealSlot localization extension
+TIMESTAMP: 2026-02-20
+
+=== FILE CREATED ===
+lib/utils/meal_slot_localization.dart
+
+=== CONTENT ===
+import '../data/models/meal.dart';
+import '../gen_l10n/app_localizations.dart';
+
+extension MealSlotLocalization on MealSlot {
+  String localizedName(AppLocalizations l10n) {
+    switch (this) {
+      case MealSlot.breakfast:
+        return l10n.breakfast;
+      case MealSlot.lunch:
+        return l10n.lunch;
+      case MealSlot.afternoonSnack:
+        return l10n.afternoonSnack;
+      case MealSlot.dinner:
+        return l10n.dinner;
+    }
+  }
+}
+
+=== VERIFICATION ===
+flutter analyze result:
+Analyzing meal_slot_localization.dart...
+No issues found! (ran in 1.0s)
+
+✓ File created successfully
+✓ All 4 MealSlot values covered (breakfast, lunch, afternoonSnack, dinner)
+✓ Returns correct l10n properties
+✓ No lint errors
+✓ Import paths verified
