@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
-import '../../utils/animation_helpers.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/l10n_helper.dart';
 import '../providers/today_provider.dart';
@@ -140,7 +139,9 @@ class _TodayScreenState extends State<TodayScreen>
           }
           final waterText = _provider.waterLiters == null
               ? ''
-              : formatWater(_provider.waterLiters!);
+              : (_provider.waterLiters! * 1000).toStringAsFixed(
+                  _provider.waterLiters! % 1 == 0 ? 0 : 1,
+                );
           if (_waterController.text != waterText && !_waterFocusNode.hasFocus) {
             _waterController.value = _waterController.value.copyWith(
               text: waterText,
@@ -209,8 +210,8 @@ class _TodayScreenState extends State<TodayScreen>
                     onExerciseDoneChanged: _provider.updateExerciseDone,
                     onExerciseNoteChanged: _provider.updateExerciseNote,
                     subtitle: l10n.dailyMetricsSubtitleToday,
-                    waterHintText: l10n.waterHintText,
-                    displayWaterInMl: false,
+                    waterHintText: '0',
+                    displayWaterInMl: true,
                   ),
                 );
               }

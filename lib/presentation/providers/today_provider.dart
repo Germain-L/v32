@@ -521,13 +521,14 @@ class TodayProvider extends ChangeNotifier {
     }
   }
 
+  /// Parses water input in milliliters and converts to liters for storage.
   double? _parseWaterInput(String input) {
     final cleaned = input.trim().replaceAll(',', '.');
     if (cleaned.isEmpty) return null;
     final value = double.tryParse(cleaned);
     if (value == null) return null;
     if (value < 0) return null;
-    return value;
+    return value / 1000;
   }
 
   Future<void> flushAndDispose() async {
