@@ -35,7 +35,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -45,7 +45,7 @@ class DatabaseService {
   static Future<void> useInMemoryDatabaseForTesting() async {
     _database = await openDatabase(
       inMemoryDatabasePath,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -84,6 +84,21 @@ class DatabaseService {
     await db.execute(
       'CREATE INDEX idx_daily_metrics_date ON daily_metrics(date)',
     );
+
+    // Create sync_queue table for pending operations
+    await db.execute('''
+      CREATE TABLE sync_queue(
+        id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        operation_type TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        retry_count INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX idx_sync_queue_created_at ON sync_queue(created_at)',
+    );
   }
 
   static Future<void> _onUpgrade(
@@ -113,6 +128,21 @@ class DatabaseService {
       ''');
       await db.execute(
         'CREATE INDEX idx_daily_metrics_date ON daily_metrics(date)',
+      );
+    }
+    if (oldVersion < 4) {
+      await db.execute('''
+        CREATE TABLE sync_queue(
+          id TEXT PRIMARY KEY,
+          entity_type TEXT NOT NULL,
+          operation_type TEXT NOT NULL,
+          payload TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          retry_count INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX idx_sync_queue_created_at ON sync_queue(created_at)',
       );
     }
   }

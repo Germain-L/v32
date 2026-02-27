@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 enum OperationType { create, update, delete }
 
 class SyncOperation {
@@ -22,7 +24,7 @@ class SyncOperation {
       'id': id,
       'entity_type': entityType,
       'operation_type': operationType.name,
-      'payload': payload,
+      'payload': jsonEncode(payload),
       'created_at': createdAt.millisecondsSinceEpoch,
       'retry_count': retryCount,
     };
@@ -35,7 +37,7 @@ class SyncOperation {
       operationType: OperationType.values.byName(
         map['operation_type'] as String,
       ),
-      payload: Map<String, dynamic>.from(map['payload'] as Map),
+      payload: jsonDecode(map['payload'] as String) as Map<String, dynamic>,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
       retryCount: map['retry_count'] as int,
     );
