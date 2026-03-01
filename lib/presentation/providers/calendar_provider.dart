@@ -2,16 +2,17 @@ import 'package:flutter/foundation.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
-import '../../data/repositories/daily_metrics_repository.dart';
-import '../../data/repositories/day_rating_repository.dart';
-import '../../data/repositories/meal_repository.dart';
+import '../../data/repositories/daily_metrics_repository_interface.dart';
+import '../../data/repositories/day_rating_repository_interface.dart';
+import '../../data/repositories/meal_repository_interface.dart';
+import '../../data/repositories/repository_factory.dart';
 
 class CalendarProvider extends ChangeNotifier {
   CalendarProvider(
     this._repository,
     this._ratingRepository, {
     DailyMetricsRepository? metricsRepository,
-  }) : _metricsRepository = metricsRepository ?? DailyMetricsRepository() {
+  }) : _metricsRepository = metricsRepository ?? RepositoryFactory().getDailyMetricsRepository() {
     final now = DateTime.now();
     _focusedMonth = DateTime(now.year, now.month, 1);
     _selectedDate = DateTime(now.year, now.month, now.day);

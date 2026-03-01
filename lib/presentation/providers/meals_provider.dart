@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
-import '../../data/repositories/daily_metrics_repository.dart';
-import '../../data/repositories/meal_repository.dart';
+import '../../data/repositories/daily_metrics_repository_interface.dart';
+import '../../data/repositories/meal_repository_interface.dart';
+import '../../data/repositories/repository_factory.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../utils/date_formatter.dart';
 
@@ -21,12 +22,14 @@ class MealsProvider extends ChangeNotifier {
   final Map<String, DailyMetrics> _metricsByDate = {};
   final Set<String> _metricsFetchedDates = {};
 
-  MealsProvider(
-    this._repository, {
+  MealsProvider({
+    MealRepository? repository,
     DailyMetricsRepository? metricsRepository,
     int pageSize = 20,
     bool autoLoad = true,
-  }) : _metricsRepository = metricsRepository ?? DailyMetricsRepository(),
+  }) : _repository = repository ?? RepositoryFactory().getMealRepository(),
+       _metricsRepository =
+           metricsRepository ?? RepositoryFactory().getDailyMetricsRepository(),
        _pageSize = pageSize,
        _autoLoad = autoLoad {
     if (_autoLoad) {
