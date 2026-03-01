@@ -170,8 +170,8 @@ class DatabaseService {
       ''');
       await db.execute('CREATE INDEX idx_meal_images_mealId ON meal_images(mealId)');
       await db.execute('CREATE INDEX idx_meal_images_createdAt ON meal_images(createdAt)');
+    }
   }
-
   static Stream<void> watchTable(String table) {
     _ensureControllers();
     return _tableChangeController.stream
