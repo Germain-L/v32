@@ -35,7 +35,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -45,7 +45,7 @@ class DatabaseService {
   static Future<void> useInMemoryDatabaseForTesting() async {
     _database = await openDatabase(
       inMemoryDatabasePath,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -64,6 +64,19 @@ class DatabaseService {
 
     await db.execute('CREATE INDEX idx_date ON meals(date)');
     await db.execute('CREATE INDEX idx_slot ON meals(slot)');
+
+    // Create meal_images table
+    await db.execute('''
+      CREATE TABLE meal_images(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mealId INTEGER NOT NULL,
+        imagePath TEXT NOT NULL,
+        createdAt INTEGER NOT NULL,
+        FOREIGN KEY (mealId) REFERENCES meals(id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('CREATE INDEX idx_meal_images_mealId ON meal_images(mealId)');
+    await db.execute('CREATE INDEX idx_meal_images_createdAt ON meal_images(createdAt)');
 
     await db.execute('''
       CREATE TABLE day_ratings(
@@ -145,6 +158,18 @@ class DatabaseService {
         'CREATE INDEX idx_sync_queue_created_at ON sync_queue(created_at)',
       );
     }
+    if (oldVersion < 5) {
+      await db.execute('''
+        CREATE TABLE meal_images(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          mealId INTEGER NOT NULL,
+          imagePath TEXT NOT NULL,
+          createdAt INTEGER NOT NULL,
+          FOREIGN KEY (mealId) REFERENCES meals(id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute('CREATE INDEX idx_meal_images_mealId ON meal_images(mealId)');
+      await db.execute('CREATE INDEX idx_meal_images_createdAt ON meal_images(createdAt)');
   }
 
   static Stream<void> watchTable(String table) {
