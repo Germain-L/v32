@@ -6,6 +6,8 @@ import 'package:image/image.dart' as img;
 class ImageStorageService {
   static Directory? _imagesDir;
 
+  static Future<Directory> get imagesDirectory => _directory;
+
   static Future<Directory> get _directory async {
     _imagesDir ??= await _initDirectory();
     return _imagesDir!;
@@ -21,9 +23,6 @@ class ImageStorageService {
 
     return imagesDir;
   }
-
-  static Future<Directory> get imagesDirectory async => await _directory;
-  static Future<Directory> get imagesDirectory async => await _directory;
 
   /// Save an image file to app storage with optional compression
   static Future<String?> saveImage(
@@ -87,6 +86,7 @@ class ImageStorageService {
     } catch (e) {
       return null;
     }
+  }
 
   /// Save an image file to a meal-specific directory
   static Future<String?> saveImageForMeal(
@@ -101,12 +101,12 @@ class ImageStorageService {
       final baseDir = await _directory;
       final mealDir = Directory(path.join(baseDir.path, mealId.toString()));
       await mealDir.create(recursive: true);
-      
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final randomBits = timestamp.remainder(1000000);
       final fileName = '${timestamp}_$randomBits.jpg';
       final targetPath = path.join(mealDir.path, fileName);
-      
+
       // Read and decode image
       final bytes = await sourceFile.readAsBytes();
       if (bytes.lengthInBytes > maxBytes) {
@@ -156,6 +156,7 @@ class ImageStorageService {
       return null;
     }
   }
+
   /// Delete an image file
   static Future<bool> deleteImage(String? imagePath) async {
     if (imagePath == null || imagePath.isEmpty) return false;

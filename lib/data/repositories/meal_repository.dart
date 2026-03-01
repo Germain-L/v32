@@ -1,9 +1,11 @@
 import 'dart:async';
 import '../models/meal.dart';
 import '../services/database_service.dart';
+import 'meal_repository_interface.dart' as meal_repository_interface;
 
-class MealRepository {
+class MealRepository implements meal_repository_interface.MealRepository {
   // Create or update
+  @override
   Future<Meal> saveMeal(Meal meal) async {
     final db = await DatabaseService.database;
     if (meal.id == null) {
@@ -45,6 +47,7 @@ class MealRepository {
   }
 
   // Get by ID
+  @override
   Future<Meal?> getMealById(int id) async {
     final db = await DatabaseService.database;
     final maps = await db.query('meals', where: 'id = ?', whereArgs: [id]);
@@ -54,6 +57,7 @@ class MealRepository {
   }
 
   // Delete
+  @override
   Future<void> deleteMeal(int id) async {
     final db = await DatabaseService.database;
     await db.delete('meals', where: 'id = ?', whereArgs: [id]);
@@ -61,6 +65,7 @@ class MealRepository {
   }
 
   // Today's meals
+  @override
   Stream<List<Meal>> watchTodayMeals() async* {
     Future<List<Meal>> loadForToday() async {
       final now = DateTime.now();
@@ -91,6 +96,7 @@ class MealRepository {
   }
 
   // Get meals for specific date
+  @override
   Future<List<Meal>> getMealsForDate(DateTime date) async {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
@@ -99,6 +105,7 @@ class MealRepository {
   }
 
   // History with pagination
+  @override
   Future<List<Meal>> getMealsBefore(DateTime date, {int limit = 20}) async {
     final db = await DatabaseService.database;
     final maps = await db.query(
@@ -112,6 +119,7 @@ class MealRepository {
     return maps.map((map) => Meal.fromMap(map)).toList();
   }
 
+  @override
   Future<List<Meal>> getMealsBeforeCursor(
     DateTime date, {
     int? id,
@@ -143,6 +151,7 @@ class MealRepository {
   }
 
   // Calendar view - meals by month
+  @override
   Future<List<Meal>> getMealsForMonth(int year, int month) async {
     final db = await DatabaseService.database;
     final start = DateTime(year, month, 1);
@@ -159,6 +168,7 @@ class MealRepository {
   }
 
   // Check if date has any meals
+  @override
   Future<bool> hasMealsForDate(DateTime date) async {
     final db = await DatabaseService.database;
     final startOfDay = DateTime(date.year, date.month, date.day);

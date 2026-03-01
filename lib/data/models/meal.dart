@@ -35,13 +35,17 @@ class Meal {
   final MealSlot slot;
   final DateTime date;
   final String? description;
+  final String? imagePath;
 
   Meal({
     this.id,
     required this.slot,
     required this.date,
     this.description,
+    this.imagePath,
   });
+
+  bool get hasImage => imagePath != null && imagePath!.isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return {
@@ -49,6 +53,7 @@ class Meal {
       'slot': slot.name,
       'date': date.millisecondsSinceEpoch,
       'description': description,
+      'imagePath': imagePath,
     };
   }
 
@@ -58,6 +63,7 @@ class Meal {
       slot: MealSlot.values.byName(map['slot'] as String),
       date: DateTime.fromMillisecondsSinceEpoch(map['date'] as int),
       description: map['description'] as String?,
+      imagePath: map['imagePath'] as String?,
     );
   }
 
@@ -68,12 +74,16 @@ class Meal {
     MealSlot? slot,
     DateTime? date,
     String? description,
+    Object? imagePath = _unset,
   }) {
     return Meal(
       id: id ?? this.id,
       slot: slot ?? this.slot,
       date: date ?? this.date,
       description: description ?? this.description,
+      imagePath: identical(imagePath, _unset)
+          ? this.imagePath
+          : imagePath as String?,
     );
   }
 }

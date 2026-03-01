@@ -1,8 +1,12 @@
 import 'package:sqflite/sqflite.dart';
 import '../models/day_rating.dart';
 import '../services/database_service.dart';
+import 'day_rating_repository_interface.dart'
+    as day_rating_repository_interface;
 
-class DayRatingRepository {
+class DayRatingRepository
+    implements day_rating_repository_interface.DayRatingRepository {
+  @override
   Future<void> saveRating(DateTime date, int score) async {
     final normalized = DateTime(date.year, date.month, date.day);
     final db = await DatabaseService.database;
@@ -14,6 +18,7 @@ class DayRatingRepository {
     await DatabaseService.notifyChange(table: 'day_ratings');
   }
 
+  @override
   Future<int?> getRatingForDate(DateTime date) async {
     final normalized = DateTime(date.year, date.month, date.day);
     final db = await DatabaseService.database;
@@ -27,6 +32,7 @@ class DayRatingRepository {
     return maps.first['score'] as int?;
   }
 
+  @override
   Future<Map<String, int>> getRatingsForMonth(int year, int month) async {
     final db = await DatabaseService.database;
     final start = DateTime(year, month, 1);

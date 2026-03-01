@@ -1,8 +1,12 @@
 import 'package:sqflite/sqflite.dart';
 import '../models/daily_metrics.dart';
 import '../services/database_service.dart';
+import 'daily_metrics_repository_interface.dart'
+    as daily_metrics_repository_interface;
 
-class DailyMetricsRepository {
+class DailyMetricsRepository
+    implements daily_metrics_repository_interface.DailyMetricsRepository {
+  @override
   Future<void> saveMetrics(DailyMetrics metrics) async {
     final normalized = DateTime(
       metrics.date.year,
@@ -23,6 +27,7 @@ class DailyMetricsRepository {
     await DatabaseService.notifyChange(table: 'daily_metrics');
   }
 
+  @override
   Future<DailyMetrics?> getMetricsForDate(DateTime date) async {
     final normalized = DateTime(date.year, date.month, date.day);
     final db = await DatabaseService.database;
@@ -36,6 +41,7 @@ class DailyMetricsRepository {
     return DailyMetrics.fromMap(maps.first);
   }
 
+  @override
   Future<Map<String, DailyMetrics>> getMetricsForMonth(
     int year,
     int month,
@@ -57,6 +63,7 @@ class DailyMetricsRepository {
     return map;
   }
 
+  @override
   Future<Map<String, DailyMetrics>> getMetricsForRange(
     DateTime start,
     DateTime end,
@@ -81,6 +88,7 @@ class DailyMetricsRepository {
     return map;
   }
 
+  @override
   Future<void> deleteMetricsForDate(DateTime date) async {
     final normalized = DateTime(date.year, date.month, date.day);
     final db = await DatabaseService.database;
