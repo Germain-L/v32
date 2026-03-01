@@ -16,7 +16,6 @@ void main() {
       slot: MealSlot.lunch,
       date: date,
       description: 'Salad',
-      imagePath: '/tmp/image.jpg',
     );
 
     final map = meal.toMap();
@@ -26,54 +25,16 @@ void main() {
     expect(decoded.slot, MealSlot.lunch);
     expect(decoded.date, date);
     expect(decoded.description, 'Salad');
-    expect(decoded.imagePath, '/tmp/image.jpg');
   });
 
-  test('Meal copyWith preserves imagePath when unset', () {
+  test('Meal copyWith updates description', () {
     final meal = Meal(
       id: 1,
       slot: MealSlot.breakfast,
       date: DateTime(2024, 3, 1),
-      imagePath: '/tmp/image.jpg',
     );
 
     final updated = meal.copyWith(description: 'Eggs');
-    expect(updated.imagePath, '/tmp/image.jpg');
-  });
-
-  test('Meal copyWith clears imagePath when null', () {
-    final meal = Meal(
-      id: 1,
-      slot: MealSlot.breakfast,
-      date: DateTime(2024, 3, 1),
-      imagePath: '/tmp/image.jpg',
-    );
-
-    final updated = meal.copyWith(imagePath: null);
-    expect(updated.imagePath, isNull);
-  });
-
-  test('Meal hasImage is false for null or empty', () {
-    final mealNull = Meal(
-      id: 1,
-      slot: MealSlot.breakfast,
-      date: DateTime(2024, 3, 1),
-    );
-    final mealEmpty = Meal(
-      id: 2,
-      slot: MealSlot.lunch,
-      date: DateTime(2024, 3, 1),
-      imagePath: '',
-    );
-    final mealValid = Meal(
-      id: 3,
-      slot: MealSlot.dinner,
-      date: DateTime(2024, 3, 1),
-      imagePath: '/tmp/image.jpg',
-    );
-
-    expect(mealNull.hasImage, isFalse);
-    expect(mealEmpty.hasImage, isFalse);
-    expect(mealValid.hasImage, isTrue);
+    expect(updated.description, 'Eggs');
   });
 }

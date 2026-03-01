@@ -90,26 +90,6 @@ void main() {
     );
   });
 
-  test('deletePhoto clears imagePath on meal', () async {
-    final now = DateTime.now();
-    final repo = FakeMealRepository(
-      seedMeals: [
-        Meal(
-          id: 4,
-          slot: MealSlot.dinner,
-          date: now,
-          imagePath: '/tmp/test.jpg',
-        ),
-      ],
-    );
-    final provider = TodayProvider(repo, FakeDayRatingRepository());
-    await provider.loadTodayMeals();
-
-    await provider.deletePhoto(MealSlot.dinner);
-
-    expect(provider.getMeal(MealSlot.dinner)?.imagePath, isNull);
-  });
-
   test('clearMeal prevents pending save from persisting', () async {
     final repo = FakeMealRepository();
     final provider = TodayProvider(repo, FakeDayRatingRepository());

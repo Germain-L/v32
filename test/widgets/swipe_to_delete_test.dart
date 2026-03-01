@@ -44,16 +44,16 @@ void main() {
           ),
         ],
       );
-      
-      final provider = MealsProvider(repo, autoLoad: false);
+
+      final provider = MealsProvider(repository: repo, autoLoad: false);
       expect(provider.meals.length, 0);
-      
+
       await provider.loadMoreMeals();
-      
+
       print('Meals loaded: ${provider.meals.length}');
       print('Error: ${provider.error}');
       print('isLoading: ${provider.isLoading}');
-      
+
       expect(provider.meals.length, 1);
       expect(provider.meals.first.id, 1);
     });
@@ -74,12 +74,18 @@ void main() {
       await tester.pumpWidget(TestMealsScreen(repository: repo));
       await tester.pump();
       await tester.pump(const Duration(seconds: 3));
-      
+
       print('After pump - checking for widgets:');
-      print('  SkeletonLoading: ${find.byType(SkeletonLoading).evaluate().length}');
-      print('  CircularProgressIndicator: ${find.byType(CircularProgressIndicator).evaluate().length}');
+      print(
+        '  SkeletonLoading: ${find.byType(SkeletonLoading).evaluate().length}',
+      );
+      print(
+        '  CircularProgressIndicator: ${find.byType(CircularProgressIndicator).evaluate().length}',
+      );
       print('  Dismissible: ${find.byType(Dismissible).evaluate().length}');
-      print('  MealHistoryCard: ${find.byType(MealHistoryCard).evaluate().length}');
+      print(
+        '  MealHistoryCard: ${find.byType(MealHistoryCard).evaluate().length}',
+      );
 
       final dismissible = find.byType(Dismissible);
       expect(dismissible, findsOneWidget);

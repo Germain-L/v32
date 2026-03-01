@@ -23,7 +23,11 @@ void main() {
       ],
     );
 
-    final provider = MealsProvider(repo, pageSize: 2, autoLoad: false);
+    final provider = MealsProvider(
+      repository: repo,
+      pageSize: 2,
+      autoLoad: false,
+    );
     await provider.loadMoreMeals();
     await provider.loadMoreMeals();
 
@@ -32,7 +36,7 @@ void main() {
 
   test('loadMoreMeals toggles hasMore when empty', () async {
     final repo = FakeMealRepository();
-    final provider = MealsProvider(repo, autoLoad: false);
+    final provider = MealsProvider(repository: repo, autoLoad: false);
 
     await provider.loadMoreMeals();
 
@@ -42,7 +46,7 @@ void main() {
 
   test('loadMoreMeals sets error on repository failure', () async {
     final repo = FakeMealRepository(throwOnGetMealsBeforeCursor: true);
-    final provider = MealsProvider(repo, autoLoad: false);
+    final provider = MealsProvider(repository: repo, autoLoad: false);
 
     await provider.loadMoreMeals();
 
@@ -55,7 +59,11 @@ void main() {
     final repo = FakeMealRepository(
       seedMeals: [Meal(id: 1, slot: MealSlot.breakfast, date: base)],
     );
-    final provider = MealsProvider(repo, pageSize: 1, autoLoad: false);
+    final provider = MealsProvider(
+      repository: repo,
+      pageSize: 1,
+      autoLoad: false,
+    );
 
     await provider.loadMoreMeals();
     expect(provider.meals, isNotEmpty);
@@ -66,7 +74,10 @@ void main() {
   });
 
   test('getFormattedDateGroup formats weekday within last week', () {
-    final provider = MealsProvider(FakeMealRepository(), autoLoad: false);
+    final provider = MealsProvider(
+      repository: FakeMealRepository(),
+      autoLoad: false,
+    );
     final now = DateTime.now();
     final date = now.subtract(const Duration(days: 3));
     final label = provider.getFormattedDateGroup(date);
@@ -82,7 +93,10 @@ void main() {
   });
 
   test('getFormattedDateGroup formats current year dates', () {
-    final provider = MealsProvider(FakeMealRepository(), autoLoad: false);
+    final provider = MealsProvider(
+      repository: FakeMealRepository(),
+      autoLoad: false,
+    );
     final now = DateTime.now();
     final date = DateTime(now.year, 1, 5);
     final label = provider.getFormattedDateGroup(date);
@@ -91,14 +105,20 @@ void main() {
   });
 
   test('getFormattedDateGroup formats older year dates', () {
-    final provider = MealsProvider(FakeMealRepository(), autoLoad: false);
+    final provider = MealsProvider(
+      repository: FakeMealRepository(),
+      autoLoad: false,
+    );
     final date = DateTime(2020, 12, 24);
     final label = provider.getFormattedDateGroup(date);
     expect(label, contains('2020'));
   });
 
   test('getFormattedDateGroup formats relative labels', () {
-    final provider = MealsProvider(FakeMealRepository(), autoLoad: false);
+    final provider = MealsProvider(
+      repository: FakeMealRepository(),
+      autoLoad: false,
+    );
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 

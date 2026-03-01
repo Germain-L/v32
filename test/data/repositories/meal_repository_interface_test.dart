@@ -77,4 +77,18 @@ class _TestMealRepository implements MealRepository {
 
   @override
   Future<bool> hasMealsForDate(DateTime date) async => false;
+
+  @override
+  Future<List<Meal>> getMealsBefore(DateTime date, {int limit = 20}) async =>
+      [];
+
+  @override
+  Future<List<Meal>> getMealsBeforeCursor(
+    DateTime date, {
+    int? id,
+    int limit = 20,
+  }) async => [];
+
+  @override
+  Future<List<Meal>> getMealsForMonth(int year, int month) async => [];
 }

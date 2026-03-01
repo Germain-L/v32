@@ -54,4 +54,10 @@ class _TestDailyMetricsRepository implements DailyMetricsRepository {
     int year,
     int month,
   ) async => {};
+
+  @override
+  Future<Map<String, DailyMetrics>> getMetricsForRange(
+    DateTime start,
+    DateTime end,
+  ) async => {};
 }
