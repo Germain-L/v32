@@ -20,7 +20,9 @@ class ImageStorageService {
     }
 
     return imagesDir;
-  }
+  static Future<Directory> get imagesDirectory async => await _directory;
+
+  static Future<Directory> get imagesDirectory async => await _directory;
 
   /// Save an image file to app storage with optional compression
   static Future<String?> saveImage(
