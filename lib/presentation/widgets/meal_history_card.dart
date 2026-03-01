@@ -35,7 +35,7 @@ class MealHistoryCard extends StatelessWidget {
             children: [
               _buildHeader(context, theme, colorScheme),
               const SizedBox(height: 8),
-              if (images.isNotEmpty) ...[
+              if (meal.hasImage) ...[
                 _buildImagePreview(context),
                 if (meal.description?.isNotEmpty == true) ...[
                   const SizedBox(height: 8),
@@ -84,7 +84,7 @@ class MealHistoryCard extends StatelessWidget {
   Widget _buildImagePreview(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (images.isNotEmpty) {
+    if (meal.hasImage) {
       return Stack(
         children: [
           ClipRRect(
@@ -92,7 +92,7 @@ class MealHistoryCard extends StatelessWidget {
             child: AspectRatio(
               aspectRatio: 4 / 5,
               child: Image.file(
-                File(images.first.imagePath),
+                File(meal.imagePath!),
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return _buildPlaceholder(colorScheme);
@@ -100,7 +100,7 @@ class MealHistoryCard extends StatelessWidget {
               ),
             ),
           ),
-          if (images.length > 1)
+          if (images.isNotEmpty && images.length > 1)
             Positioned(
               top: 8,
               right: 8,
