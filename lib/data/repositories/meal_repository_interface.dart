@@ -20,4 +20,17 @@ abstract class MealRepository {
 
   /// Check if any meals exist for a date
   Future<bool> hasMealsForDate(DateTime date);
+
+  /// Get meals before a date with pagination
+  Future<List<Meal>> getMealsBefore(DateTime date, {int limit = 20});
+
+  /// Get meals before a cursor (date + optional id) for pagination
+  Future<List<Meal>> getMealsBeforeCursor(
+    DateTime date, {
+    int? id,
+    int limit = 20,
+  });
+
+  /// Get meals for a specific month
+  Future<List<Meal>> getMealsForMonth(int year, int month);
 }

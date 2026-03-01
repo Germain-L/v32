@@ -52,6 +52,33 @@ class MockMealRepository implements MealRepository {
     return meals.isNotEmpty;
   }
 
+  @override
+  Future<List<Meal>> getMealsBefore(DateTime date, {int limit = 20}) async {
+    return _meals.values.where((m) => m.date.isBefore(date)).toList();
+  }
+
+  @override
+  Future<List<Meal>> getMealsBeforeCursor(
+    DateTime date, {
+    int? id,
+    int limit = 20,
+  }) async {
+    return getMealsBefore(date, limit: limit);
+  }
+
+  @override
+  Future<List<Meal>> getMealsForMonth(int year, int month) async {
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 1);
+    return _meals.values
+        .where(
+          (m) =>
+              m.date.isAfter(start.subtract(Duration(microseconds: 1))) &&
+              m.date.isBefore(end),
+        )
+        .toList();
+  }
+
   /// Clear all data (useful in tests)
   void clear() {
     _meals.clear();

@@ -44,6 +44,14 @@ class MockDailyMetricsRepository implements DailyMetricsRepository {
     return Map.unmodifiable(_metrics);
   }
 
+  @override
+  Future<Map<String, DailyMetrics>> getMetricsForRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    return Map.unmodifiable(_metrics);
+  }
+
   /// Clear all data (useful in tests)
   void clear() {
     _metrics.clear();

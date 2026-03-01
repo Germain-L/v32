@@ -13,4 +13,10 @@ abstract class DailyMetricsRepository {
 
   /// Get all metrics for a month, keyed by date string (YYYY-MM-DD)
   Future<Map<String, DailyMetrics>> getMetricsForMonth(int year, int month);
+
+  /// Get all metrics for a date range, keyed by date string (YYYY-MM-DD)
+  Future<Map<String, DailyMetrics>> getMetricsForRange(
+    DateTime start,
+    DateTime end,
+  );
 }

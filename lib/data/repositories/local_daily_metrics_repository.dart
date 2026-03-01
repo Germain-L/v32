@@ -74,6 +74,31 @@ class LocalDailyMetricsRepository implements DailyMetricsRepository {
     return map;
   }
 
+  @override
+  Future<Map<String, DailyMetrics>> getMetricsForRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final db = await DatabaseService.database;
+    final normalizedStart = DateTime(start.year, start.month, start.day);
+    final normalizedEnd = DateTime(end.year, end.month, end.day, 23, 59, 59);
+    final maps = await db.query(
+      'daily_metrics',
+      where: 'date >= ? AND date <= ?',
+      whereArgs: [
+        normalizedStart.millisecondsSinceEpoch,
+        normalizedEnd.millisecondsSinceEpoch,
+      ],
+    );
+
+    final map = <String, DailyMetrics>{};
+    for (final entry in maps) {
+      final metrics = DailyMetrics.fromMap(entry);
+      map[_dateKey(metrics.date)] = metrics;
+    }
+    return map;
+  }
+
   String _dateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
