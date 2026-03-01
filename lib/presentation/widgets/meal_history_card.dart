@@ -1,14 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
+import '../../data/models/meal_image.dart';
 import '../../utils/l10n_helper.dart';
 import '../../utils/date_formatter.dart';
 
 class MealHistoryCard extends StatelessWidget {
   final Meal meal;
+  final List<MealImage> images;
   final VoidCallback? onTap;
 
-  const MealHistoryCard({super.key, required this.meal, this.onTap});
+  const MealHistoryCard({
+    super.key,
+    required this.meal,
+    this.images = const [],
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +35,7 @@ class MealHistoryCard extends StatelessWidget {
             children: [
               _buildHeader(context, theme, colorScheme),
               const SizedBox(height: 8),
-              if (meal.hasImage && meal.imagePath != null) ...[
+              if (images.isNotEmpty) ...[
                 _buildImagePreview(context),
                 if (meal.description?.isNotEmpty == true) ...[
                   const SizedBox(height: 8),
@@ -77,19 +84,54 @@ class MealHistoryCard extends StatelessWidget {
   Widget _buildImagePreview(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (meal.hasImage && meal.imagePath != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: AspectRatio(
-          aspectRatio: 4 / 5,
-          child: Image.file(
-            File(meal.imagePath!),
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return _buildPlaceholder(colorScheme);
-            },
+    if (images.isNotEmpty) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 4 / 5,
+              child: Image.file(
+                File(images.first.imagePath),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildPlaceholder(colorScheme);
+                },
+              ),
+            ),
           ),
-        ),
+          if (images.length > 1)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.photo_library,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${images.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
       );
     }
 

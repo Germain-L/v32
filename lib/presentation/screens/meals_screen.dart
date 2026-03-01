@@ -38,7 +38,7 @@ class _MealsScreenState extends State<MealsScreen>
   void initState() {
     super.initState();
     _provider = MealsProvider(
-      widget.repository ?? MealRepository(),
+      repository: widget.repository ?? MealRepository(),
       metricsRepository: widget.metricsRepository,
       autoLoad: widget.autoLoad,
     );
