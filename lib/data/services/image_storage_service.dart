@@ -20,8 +20,9 @@ class ImageStorageService {
     }
 
     return imagesDir;
-  static Future<Directory> get imagesDirectory async => await _directory;
+  }
 
+  static Future<Directory> get imagesDirectory async => await _directory;
   static Future<Directory> get imagesDirectory async => await _directory;
 
   /// Save an image file to app storage with optional compression
@@ -86,8 +87,75 @@ class ImageStorageService {
     } catch (e) {
       return null;
     }
-  }
 
+  /// Save an image file to a meal-specific directory
+  static Future<String?> saveImageForMeal(
+    File sourceFile,
+    int mealId, {
+    int maxWidth = 1200,
+    int quality = 85,
+    int maxBytes = 12 * 1024 * 1024,
+  }) async {
+    try {
+      // Create meal-specific directory
+      final baseDir = await _directory;
+      final mealDir = Directory(path.join(baseDir.path, mealId.toString()));
+      await mealDir.create(recursive: true);
+      
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final randomBits = timestamp.remainder(1000000);
+      final fileName = '${timestamp}_$randomBits.jpg';
+      final targetPath = path.join(mealDir.path, fileName);
+      
+      // Read and decode image
+      final bytes = await sourceFile.readAsBytes();
+      if (bytes.lengthInBytes > maxBytes) {
+        return null;
+      }
+
+      final decoder = img.findDecoderForNamedImage(sourceFile.path);
+      img.Image? image;
+      if (decoder != null) {
+        final info = decoder.startDecode(bytes);
+        if (info == null) return null;
+        final targetWidth = info.width > maxWidth ? maxWidth : info.width;
+        final scale = targetWidth / info.width;
+        final targetHeight = (info.height * scale).round();
+        image = decoder.decodeFrame(0);
+        if (image == null) return null;
+        if (image.width > targetWidth) {
+          image = img.copyResize(
+            image,
+            width: targetWidth,
+            height: targetHeight,
+            interpolation: img.Interpolation.linear,
+          );
+        }
+      } else {
+        image = img.decodeImage(bytes);
+      }
+
+      if (image == null) return null;
+
+      // Resize if too large
+      if (image.width > maxWidth) {
+        image = img.copyResize(
+          image,
+          width: maxWidth,
+          interpolation: img.Interpolation.linear,
+        );
+      }
+
+      // Compress and save
+      final compressedBytes = img.encodeJpg(image, quality: quality);
+      final targetFile = File(targetPath);
+      await targetFile.writeAsBytes(compressedBytes);
+
+      return targetPath;
+    } catch (e) {
+      return null;
+    }
+  }
   /// Delete an image file
   static Future<bool> deleteImage(String? imagePath) async {
     if (imagePath == null || imagePath.isEmpty) return false;
