@@ -1,6 +1,8 @@
 import 'dart:async';
 import '../models/meal.dart';
+import '../models/meal_image.dart';
 import '../services/database_service.dart';
+import 'meal_image_repository.dart';
 import 'meal_repository_interface.dart';
 
 /// SQLite implementation of MealRepository.
@@ -174,5 +176,12 @@ class LocalMealRepository implements MealRepository {
 
     final count = (result.first['count'] as int?) ?? 0;
     return count > 0;
+  }
+
+  /// Get additional images for a meal
+  Future<List<MealImage>> getAdditionalImagesForMeal(int mealId) async {
+    if (mealId <= 0) return [];
+    final imageRepo = MealImageRepository();
+    return imageRepo.getImagesForMeal(mealId);
   }
 }

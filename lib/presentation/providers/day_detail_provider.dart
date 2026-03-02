@@ -4,9 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/daily_metrics.dart';
 import '../../data/models/meal.dart';
+import '../../data/models/meal_image.dart';
 import '../../data/repositories/daily_metrics_repository_interface.dart';
 import '../../data/repositories/day_rating_repository_interface.dart';
 import '../../data/repositories/meal_repository_interface.dart';
+import '../../data/repositories/meal_image_repository.dart';
 import '../../data/repositories/repository_factory.dart';
 import '../../data/services/image_storage_service.dart';
 import '../../gen_l10n/app_localizations.dart';
@@ -19,6 +21,7 @@ class DayDetailProvider extends ChangeNotifier {
   final _picker = ImagePicker();
 
   final Map<MealSlot, Meal?> _meals = {};
+  final Map<MealSlot, List<MealImage>> _additionalImages = {};
   final Map<MealSlot, bool> _isLoading = {};
   final Map<MealSlot, bool> _isSaving = {};
   final Map<MealSlot, String?> _descriptions = {};
@@ -40,7 +43,8 @@ class DayDetailProvider extends ChangeNotifier {
     this._ratingRepository,
     DateTime date, {
     DailyMetricsRepository? metricsRepository,
-  }) : _metricsRepository = metricsRepository ?? RepositoryFactory().getDailyMetricsRepository(),
+  }) : _metricsRepository =
+           metricsRepository ?? RepositoryFactory().getDailyMetricsRepository(),
        _date = DateTime(date.year, date.month, date.day) {
     _initializeSlots();
     loadMealsForDate();
@@ -56,11 +60,14 @@ class DayDetailProvider extends ChangeNotifier {
       _debounceTimers[slot] = null;
       _hasPendingDescriptionSave[slot] = false;
       _isClearing[slot] = false;
+      _additionalImages[slot] = [];
     }
   }
 
   DateTime get date => _date;
   Meal? getMeal(MealSlot slot) => _meals[slot];
+  List<MealImage> getAdditionalImages(MealSlot slot) =>
+      List.unmodifiable(_additionalImages[slot] ?? []);
   bool isLoading(MealSlot slot) => _isLoading[slot] ?? false;
   bool isSaving(MealSlot slot) => _isSaving[slot] ?? false;
   String getDescription(MealSlot slot) => _descriptions[slot] ?? '';
@@ -78,6 +85,15 @@ class DayDetailProvider extends ChangeNotifier {
       for (final slot in MealSlot.values) {
         _meals[slot] = meals.where((m) => m.slot == slot).firstOrDefault;
         _descriptions[slot] = _meals[slot]?.description ?? '';
+
+        // Load additional images for this meal
+        final mealId = _meals[slot]?.id;
+        if (mealId != null) {
+          final images = await MealImageRepository().getImagesForMeal(mealId);
+          _additionalImages[slot] = images;
+        } else {
+          _additionalImages[slot] = [];
+        }
       }
 
       _notifyIfMounted();
@@ -226,6 +242,138 @@ class DayDetailProvider extends ChangeNotifier {
       _notifyIfMounted();
     } finally {
       _setLoading(slot, false);
+    }
+  }
+
+  Future<void> captureAdditionalPhoto(
+    MealSlot slot, [
+    AppLocalizations? l10n,
+  ]) async {
+    final meal = _meals[slot];
+    if (meal?.id == null) return;
+
+    _setLoading(slot, true);
+
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1200,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) {
+        _setLoading(slot, false);
+        return;
+      }
+
+      final savedPath = await ImageStorageService.saveImage(
+        File(pickedFile.path),
+      );
+
+      if (savedPath == null) {
+        _error = l10n != null ? l10n.errorSaveImage : 'Failed to save image';
+        _setLoading(slot, false);
+        return;
+      }
+
+      await _saveAdditionalImage(slot, meal!.id!, savedPath);
+    } catch (e) {
+      _error = l10n != null
+          ? '${l10n.errorCapturePhoto}: $e'
+          : 'Failed to capture photo: $e';
+      _notifyIfMounted();
+    } finally {
+      _setLoading(slot, false);
+    }
+  }
+
+  Future<void> pickAdditionalImage(
+    MealSlot slot, [
+    AppLocalizations? l10n,
+  ]) async {
+    final meal = _meals[slot];
+    if (meal?.id == null) return;
+
+    _setLoading(slot, true);
+
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        imageQuality: 85,
+      );
+
+      if (pickedFile == null) {
+        _setLoading(slot, false);
+        return;
+      }
+
+      final savedPath = await ImageStorageService.saveImage(
+        File(pickedFile.path),
+      );
+
+      if (savedPath == null) {
+        _error = l10n != null ? l10n.errorSaveImage : 'Failed to save image';
+        _setLoading(slot, false);
+        return;
+      }
+
+      await _saveAdditionalImage(slot, meal!.id!, savedPath);
+    } catch (e) {
+      _error = l10n != null
+          ? '${l10n.errorPickImage}: $e'
+          : 'Failed to pick image: $e';
+      _notifyIfMounted();
+    } finally {
+      _setLoading(slot, false);
+    }
+  }
+
+  Future<void> _saveAdditionalImage(
+    MealSlot slot,
+    int mealId,
+    String imagePath,
+  ) async {
+    try {
+      final imageRepo = MealImageRepository();
+      final newImage = await imageRepo.addImage(mealId, imagePath);
+      _additionalImages[slot] = [...(_additionalImages[slot] ?? []), newImage];
+      _notifyIfMounted();
+    } catch (e) {
+      _error = 'Failed to save additional image: $e';
+      _notifyIfMounted();
+    }
+  }
+
+  Future<void> deleteAdditionalImage(
+    MealSlot slot,
+    int imageId, [
+    AppLocalizations? l10n,
+  ]) async {
+    final images = _additionalImages[slot];
+    if (images == null) return;
+
+    // Find the image with the matching ID
+    MealImage? image;
+    try {
+      image = images.firstWhere((img) => img.id == imageId);
+    } catch (e) {
+      return; // Image not found
+    }
+
+    try {
+      final imageRepo = MealImageRepository();
+      await imageRepo.deleteImage(imageId);
+      await ImageStorageService.deleteImage(image.imagePath);
+      _additionalImages[slot] = images
+          .where((img) => img.id != imageId)
+          .toList();
+      _notifyIfMounted();
+    } catch (e) {
+      _error = l10n != null
+          ? '${l10n.errorDeletePhoto}: $e'
+          : 'Failed to delete photo: $e';
+      _notifyIfMounted();
     }
   }
 
@@ -409,6 +557,12 @@ class DayDetailProvider extends ChangeNotifier {
 
     if (meal != null) {
       try {
+        // Delete all additional images for this meal
+        if (meal.id != null) {
+          final imageRepo = MealImageRepository();
+          await imageRepo.deleteAllImagesForMeal(meal.id!);
+          _additionalImages[slot] = [];
+        }
         if (meal.id != null) {
           await _repository.deleteMeal(meal.id!);
         }

@@ -297,6 +297,10 @@ class _DayDetailPageState extends State<DayDetailPage>
                 onPickImage: () => _provider.pickImage(slot, l10n),
                 onDeletePhoto: () => _provider.deletePhoto(slot, l10n),
                 onClearMeal: () => _showClearConfirmation(slot, l10n),
+                additionalImages: _provider.getAdditionalImages(slot),
+                onAddAdditionalImage: () => _showAddImageOptions(slot, l10n),
+                onDeleteAdditionalImage: (imageId) =>
+                    _provider.deleteAdditionalImage(slot, imageId, l10n),
                 descriptionController: _controllers[slot],
                 descriptionFocusNode: _focusNodes[slot],
                 onDescriptionChanged: (value) =>
@@ -384,6 +388,36 @@ class _DayDetailPageState extends State<DayDetailPage>
 
     if (confirmed == true) {
       await _provider.clearMeal(slot, l10n);
+    }
+  }
+
+  Future<void> _showAddImageOptions(MealSlot slot, AppLocalizations l10n) async {
+    HapticFeedbackUtil.trigger(HapticLevel.selection);
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: Text(l10n.camera),
+              onTap: () => Navigator.of(context).pop('camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: Text(l10n.gallery),
+              onTap: () => Navigator.of(context).pop('gallery'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == 'camera') {
+      await _provider.captureAdditionalPhoto(slot, l10n);
+    } else if (result == 'gallery') {
+      await _provider.pickAdditionalImage(slot, l10n);
     }
   }
 }

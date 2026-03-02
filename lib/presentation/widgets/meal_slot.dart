@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
+import '../../data/models/meal_image.dart';
+import 'meal_image_gallery.dart';
 import '../../utils/l10n_helper.dart';
 import 'haptic_feedback_wrapper.dart';
 import 'press_scale.dart';
@@ -13,6 +15,9 @@ class MealSlotWidget extends StatelessWidget {
   final VoidCallback? onPickImage;
   final VoidCallback? onDeletePhoto;
   final VoidCallback? onClearMeal;
+  final List<MealImage> additionalImages;
+  final VoidCallback? onAddAdditionalImage;
+  final Function(int imageId)? onDeleteAdditionalImage;
   final ValueChanged<String>? onDescriptionChanged;
   final VoidCallback? onDescriptionEditingComplete;
   final TextEditingController? descriptionController;
@@ -30,6 +35,9 @@ class MealSlotWidget extends StatelessWidget {
     this.onPickImage,
     this.onDeletePhoto,
     this.onClearMeal,
+    this.additionalImages = const [],
+    this.onAddAdditionalImage,
+    this.onDeleteAdditionalImage,
     this.onDescriptionChanged,
     this.onDescriptionEditingComplete,
     this.descriptionController,
@@ -99,8 +107,28 @@ class MealSlotWidget extends StatelessWidget {
       );
     }
 
-    if (meal?.hasImage ?? false) {
-      return _buildPhotoPreview(context);
+    // Show gallery if there are additional images OR if there's a primary image
+    final hasAdditionalImages = additionalImages.isNotEmpty;
+    final hasPrimaryImage = meal?.hasImage ?? false;
+
+    if (hasPrimaryImage || hasAdditionalImages) {
+      return Column(
+        children: [
+          // Primary image (existing _buildPhotoPreview)
+          if (hasPrimaryImage) _buildPhotoPreview(context),
+
+          // Additional images gallery
+          if (hasPrimaryImage || hasAdditionalImages)
+            const SizedBox(height: 12),
+
+          // Show gallery with "add more" button when we have images
+          MealImageGallery(
+            images: additionalImages,
+            onAddImage: onAddAdditionalImage,
+            onDeleteImage: onDeleteAdditionalImage,
+          ),
+        ],
+      );
     }
 
     return _buildPhotoPlaceholder(context);
