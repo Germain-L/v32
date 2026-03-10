@@ -86,10 +86,16 @@ class MealSlotWidget extends StatelessWidget {
           ],
         ),
         if (meal != null)
-          IconButton(
-            icon: const Icon(Icons.clear, size: 20),
-            onPressed: onClearMeal,
-            tooltip: context.l10n.clearMealTooltip,
+          HapticWrapper(
+            level: HapticLevel.medium,
+            child: IconButton(
+              icon: const Icon(Icons.clear, size: 20),
+              onPressed: onClearMeal,
+              tooltip: context.l10n.clearMealTooltip,
+              padding: const EdgeInsets.all(12),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              splashRadius: 24,
+            ),
           ),
       ],
     );

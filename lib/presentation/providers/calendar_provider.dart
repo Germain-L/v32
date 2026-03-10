@@ -12,7 +12,9 @@ class CalendarProvider extends ChangeNotifier {
     this._repository,
     this._ratingRepository, {
     DailyMetricsRepository? metricsRepository,
-  }) : _metricsRepository = metricsRepository ?? RepositoryFactory().getDailyMetricsRepository() {
+  }) : _metricsRepository =
+           metricsRepository ??
+           RepositoryFactory().getDailyMetricsRepository() {
     final now = DateTime.now();
     _focusedMonth = DateTime(now.year, now.month, 1);
     _selectedDate = DateTime(now.year, now.month, now.day);
@@ -98,38 +100,101 @@ class CalendarProvider extends ChangeNotifier {
     final targetMonth = _focusedMonth;
 
     try {
-      final mealsFuture = _repository.getMealsForMonth(
+      // Calculate previous and next month for spillover days
+      final prevMonth = DateTime(targetMonth.year, targetMonth.month - 1, 1);
+      final nextMonth = DateTime(targetMonth.year, targetMonth.month + 1, 1);
+
+      // Load current month + adjacent months for spillover days
+      final currentMealsFuture = _repository.getMealsForMonth(
         targetMonth.year,
         targetMonth.month,
       );
-      final ratingsFuture = _ratingRepository.getRatingsForMonth(
+      final prevMealsFuture = _repository.getMealsForMonth(
+        prevMonth.year,
+        prevMonth.month,
+      );
+      final nextMealsFuture = _repository.getMealsForMonth(
+        nextMonth.year,
+        nextMonth.month,
+      );
+
+      final currentRatingsFuture = _ratingRepository.getRatingsForMonth(
         targetMonth.year,
         targetMonth.month,
       );
-      final metricsFuture = _metricsRepository.getMetricsForMonth(
+      final prevRatingsFuture = _ratingRepository.getRatingsForMonth(
+        prevMonth.year,
+        prevMonth.month,
+      );
+      final nextRatingsFuture = _ratingRepository.getRatingsForMonth(
+        nextMonth.year,
+        nextMonth.month,
+      );
+
+      final currentMetricsFuture = _metricsRepository.getMetricsForMonth(
         targetMonth.year,
         targetMonth.month,
       );
+      final prevMetricsFuture = _metricsRepository.getMetricsForMonth(
+        prevMonth.year,
+        prevMonth.month,
+      );
+      final nextMetricsFuture = _metricsRepository.getMetricsForMonth(
+        nextMonth.year,
+        nextMonth.month,
+      );
+
       final results = await Future.wait([
-        mealsFuture,
-        ratingsFuture,
-        metricsFuture,
+        currentMealsFuture,
+        prevMealsFuture,
+        nextMealsFuture,
+        currentRatingsFuture,
+        prevRatingsFuture,
+        nextRatingsFuture,
+        currentMetricsFuture,
+        prevMetricsFuture,
+        nextMetricsFuture,
       ]);
+
       if (targetMonth != _focusedMonth) {
         return;
       }
-      final meals = results[0] as List<Meal>;
-      final ratings = results[1] as Map<String, int>;
-      final metrics = results[2] as Map<String, DailyMetrics>;
+
+      // Merge meals from all three months
+      final currentMeals = results[0] as List<Meal>;
+      final prevMeals = results[1] as List<Meal>;
+      final nextMeals = results[2] as List<Meal>;
+      final allMeals = [...currentMeals, ...prevMeals, ...nextMeals];
+
+      // Merge ratings from all three months
+      final currentRatings = results[3] as Map<String, int>;
+      final prevRatings = results[4] as Map<String, int>;
+      final nextRatings = results[5] as Map<String, int>;
+      final allRatings = <String, int>{
+        ...prevRatings,
+        ...currentRatings,
+        ...nextRatings,
+      };
+
+      // Merge metrics from all three months
+      final currentMetrics = results[6] as Map<String, DailyMetrics>;
+      final prevMetrics = results[7] as Map<String, DailyMetrics>;
+      final nextMetrics = results[8] as Map<String, DailyMetrics>;
+      final allMetrics = <String, DailyMetrics>{
+        ...prevMetrics,
+        ...currentMetrics,
+        ...nextMetrics,
+      };
+
       _monthHasMeals
         ..clear()
-        ..addAll(_buildMonthMealMap(meals));
+        ..addAll(_buildMonthMealMap(allMeals));
       _monthRatings
         ..clear()
-        ..addAll(ratings);
+        ..addAll(allRatings);
       _monthMetrics
         ..clear()
-        ..addAll(metrics);
+        ..addAll(allMetrics);
     } catch (e) {
       _error = l10n != null
           ? '${l10n.errorLoadCalendar}: $e'

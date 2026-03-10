@@ -124,7 +124,7 @@ class DayDetailPage extends StatefulWidget {
 }
 
 class _DayDetailPageState extends State<DayDetailPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final DayDetailProvider _provider;
   late final AnimationController _listController;
   late final AnimationController _shakeController;

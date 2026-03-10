@@ -31,6 +31,9 @@ class DailyMetricsWidget extends StatefulWidget {
   /// Callback when water input changes.
   final ValueChanged<String> onWaterChanged;
 
+  /// Callback when water input editing is complete.
+  final VoidCallback? onWaterEditingComplete;
+
   /// Callback when exercise toggle changes.
   final ValueChanged<bool> onExerciseDoneChanged;
 
@@ -56,6 +59,7 @@ class DailyMetricsWidget extends StatefulWidget {
     required this.exerciseNoteController,
     required this.exerciseNoteFocusNode,
     required this.onWaterChanged,
+    this.onWaterEditingComplete,
     required this.onExerciseDoneChanged,
     required this.onExerciseNoteChanged,
     required this.subtitle,
@@ -207,6 +211,9 @@ class _DailyMetricsWidgetState extends State<DailyMetricsWidget>
                     onChanged: (value) {
                       HapticFeedbackUtil.trigger(HapticLevel.medium);
                       widget.onWaterChanged(value);
+                    },
+                    onEditingComplete: () {
+                      widget.onWaterEditingComplete?.call();
                     },
                     decoration: InputDecoration(
                       isDense: true,

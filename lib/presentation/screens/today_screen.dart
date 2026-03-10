@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../gen_l10n/app_localizations.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/l10n_helper.dart';
 import '../providers/today_provider.dart';
@@ -23,7 +24,7 @@ class TodayScreen extends StatefulWidget {
 }
 
 class _TodayScreenState extends State<TodayScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final TodayProvider _provider;
   late final bool _ownsProvider;
   late final AnimationController _listController;
@@ -142,7 +143,9 @@ class _TodayScreenState extends State<TodayScreen>
               : (_provider.waterLiters! * 1000).toStringAsFixed(
                   _provider.waterLiters! % 1 == 0 ? 0 : 1,
                 );
-          if (_waterController.text != waterText && !_waterFocusNode.hasFocus) {
+          if (!_provider.isEditingWater &&
+              _waterController.text != waterText &&
+              !_waterFocusNode.hasFocus) {
             _waterController.value = _waterController.value.copyWith(
               text: waterText,
               selection: TextSelection.collapsed(offset: waterText.length),
@@ -207,6 +210,7 @@ class _TodayScreenState extends State<TodayScreen>
                     exerciseNoteController: _exerciseNoteController,
                     exerciseNoteFocusNode: _exerciseNoteFocusNode,
                     onWaterChanged: _provider.updateWaterLiters,
+                    onWaterEditingComplete: _provider.onWaterEditingComplete,
                     onExerciseDoneChanged: _provider.updateExerciseDone,
                     onExerciseNoteChanged: _provider.updateExerciseNote,
                     subtitle: l10n.dailyMetricsSubtitleToday,
@@ -223,10 +227,15 @@ class _TodayScreenState extends State<TodayScreen>
                   slot: slot,
                   meal: _provider.getMeal(slot),
                   isLoading: _provider.isLoading(slot),
-                  onCapturePhoto: () => _provider.capturePhoto(slot),
-                  onPickImage: () => _provider.pickImage(slot),
-                  onDeletePhoto: () => _provider.deletePhoto(slot),
+                  onCapturePhoto: () =>
+                      _provider.capturePhoto(slot, l10n: l10n),
+                  onPickImage: () => _provider.pickImage(slot, l10n: l10n),
+                  onDeletePhoto: () => _provider.deletePhoto(slot, l10n: l10n),
                   onClearMeal: () => _showClearConfirmation(slot),
+                  additionalImages: _provider.getAdditionalImages(slot),
+                  onAddAdditionalImage: () => _showAddImageOptions(slot, l10n),
+                  onDeleteAdditionalImage: (imageId) => _provider
+                      .deleteAdditionalImage(slot, imageId, l10n: l10n),
                   descriptionController: _controllers[slot],
                   descriptionFocusNode: _focusNodes[slot],
                   onDescriptionChanged: (value) =>
@@ -306,7 +315,40 @@ class _TodayScreenState extends State<TodayScreen>
     );
 
     if (confirmed == true) {
-      await _provider.clearMeal(slot);
+      await _provider.clearMeal(slot, l10n: context.l10n);
+    }
+  }
+
+  Future<void> _showAddImageOptions(
+    MealSlot slot,
+    AppLocalizations l10n,
+  ) async {
+    HapticFeedbackUtil.trigger(HapticLevel.selection);
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: Text(l10n.camera),
+              onTap: () => Navigator.of(context).pop('camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: Text(l10n.gallery),
+              onTap: () => Navigator.of(context).pop('gallery'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == 'camera') {
+      await _provider.captureAdditionalPhoto(slot, l10n: l10n);
+    } else if (result == 'gallery') {
+      await _provider.pickAdditionalImage(slot, l10n: l10n);
     }
   }
 }
