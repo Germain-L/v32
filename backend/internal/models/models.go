@@ -3,11 +3,14 @@ package models
 import "time"
 
 type Meal struct {
-	ID          int64      `json:"id,omitempty"`
-	Slot        string     `json:"slot"`
-	Date        int64      `json:"date"` // milliseconds since epoch
-	Description *string    `json:"description,omitempty"`
+	ID          int64       `json:"id,omitempty"`
+	Slot        string      `json:"slot"`
+	Date        int64       `json:"date"` // milliseconds since epoch
+	Description *string     `json:"description,omitempty"`
 	Images      []MealImage `json:"images,omitempty"`
+	UpdatedAt   int64       `json:"updatedAt"`
+	DeletedAt   *int64      `json:"deletedAt,omitempty"`
+	ServerID    int64       `json:"serverId,omitempty"` // Original ID before migration
 }
 
 type MealImage struct {

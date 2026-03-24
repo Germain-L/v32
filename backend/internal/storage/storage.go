@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gmn/v32-backend/internal/models"
 	_ "github.com/mattn/go-sqlite3"
@@ -41,9 +42,14 @@ func createTables(db *sql.DB) error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			slot TEXT NOT NULL,
 			date INTEGER NOT NULL,
-			description TEXT
+			description TEXT,
+			updated_at INTEGER NOT NULL DEFAULT 0,
+			deleted_at INTEGER,
+			server_id INTEGER UNIQUE
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_meals_date ON meals(date)`,
+		`CREATE INDEX IF NOT EXISTS idx_meals_updated_at ON meals(updated_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_meals_deleted_at ON meals(deleted_at)`,
 		`CREATE TABLE IF NOT EXISTS meal_images(
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			meal_id INTEGER NOT NULL,
@@ -63,6 +69,53 @@ func createTables(db *sql.DB) error {
 			return err
 		}
 	}
+
+	// Run migrations for existing tables
+	if err := runMigrations(db); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runMigrations(db *sql.DB) error {
+	// Check if updated_at column exists
+	row := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('meals') WHERE name='updated_at'`)
+	var count int
+	if err := row.Scan(&count); err == nil && count == 0 {
+		// Column doesn't exist, add it
+		if _, err := db.Exec(`ALTER TABLE meals ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return fmt.Errorf("failed to add updated_at column: %w", err)
+		}
+	}
+
+	// Check if deleted_at column exists
+	row = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('meals') WHERE name='deleted_at'`)
+	if err := row.Scan(&count); err == nil && count == 0 {
+		if _, err := db.Exec(`ALTER TABLE meals ADD COLUMN deleted_at INTEGER`); err != nil {
+			return fmt.Errorf("failed to add deleted_at column: %w", err)
+		}
+	}
+
+	// Check if server_id column exists
+	row = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('meals') WHERE name='server_id'`)
+	if err := row.Scan(&count); err == nil && count == 0 {
+		if _, err := db.Exec(`ALTER TABLE meals ADD COLUMN server_id INTEGER UNIQUE`); err != nil {
+			return fmt.Errorf("failed to add server_id column: %w", err)
+		}
+	}
+
+	// Create indexes if they don't exist
+	indexes := []string{
+		`CREATE INDEX IF NOT EXISTS idx_meals_updated_at ON meals(updated_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_meals_deleted_at ON meals(deleted_at)`,
+	}
+	for _, idx := range indexes {
+		if _, err := db.Exec(idx); err != nil {
+			return fmt.Errorf("failed to create index: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -73,10 +126,22 @@ func (s *Storage) Close() error {
 // --- Meals ---
 
 func (s *Storage) SaveMeal(m *models.Meal) error {
-	result, err := s.db.Exec(
-		"INSERT INTO meals (slot, date, description) VALUES (?, ?, ?)",
-		m.Slot, m.Date, m.Description,
-	)
+	now := time.Now().UnixMilli()
+
+	var result sql.Result
+	var err error
+
+	if m.ServerID > 0 {
+		result, err = s.db.Exec(
+			"INSERT INTO meals (slot, date, description, updated_at, server_id) VALUES (?, ?, ?, ?, ?)",
+			m.Slot, m.Date, m.Description, now, m.ServerID,
+		)
+	} else {
+		result, err = s.db.Exec(
+			"INSERT INTO meals (slot, date, description, updated_at) VALUES (?, ?, ?, ?)",
+			m.Slot, m.Date, m.Description, now,
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -86,17 +151,19 @@ func (s *Storage) SaveMeal(m *models.Meal) error {
 		return err
 	}
 	m.ID = id
+	m.UpdatedAt = now
 	return nil
 }
 
 func (s *Storage) GetMealsByDate(dateStr string) ([]models.Meal, error) {
 	// Parse date and get range
 	// dateStr is YYYY-MM-DD
-	
+
 	rows, err := s.db.Query(`
-		SELECT m.id, m.slot, m.date, m.description
+		SELECT m.id, m.slot, m.date, m.description, m.updated_at, m.deleted_at, m.server_id
 		FROM meals m
 		WHERE date(m.date / 1000, 'unixepoch') = ?
+		AND m.deleted_at IS NULL
 		ORDER BY m.date ASC
 	`, dateStr)
 	if err != nil {
@@ -107,8 +174,16 @@ func (s *Storage) GetMealsByDate(dateStr string) ([]models.Meal, error) {
 	var meals []models.Meal
 	for rows.Next() {
 		var m models.Meal
-		if err := rows.Scan(&m.ID, &m.Slot, &m.Date, &m.Description); err != nil {
+		var deletedAt sql.NullInt64
+		var serverID sql.NullInt64
+		if err := rows.Scan(&m.ID, &m.Slot, &m.Date, &m.Description, &m.UpdatedAt, &deletedAt, &serverID); err != nil {
 			return nil, err
+		}
+		if deletedAt.Valid {
+			m.DeletedAt = &deletedAt.Int64
+		}
+		if serverID.Valid {
+			m.ServerID = serverID.Int64
 		}
 		// Load images for this meal
 		m.Images, _ = s.GetImagesByMeal(m.ID)
@@ -123,9 +198,10 @@ func (s *Storage) GetMealsByDate(dateStr string) ([]models.Meal, error) {
 
 func (s *Storage) GetRecentMeals(days int) ([]models.Meal, error) {
 	rows, err := s.db.Query(`
-		SELECT m.id, m.slot, m.date, m.description
+		SELECT m.id, m.slot, m.date, m.description, m.updated_at, m.deleted_at, m.server_id
 		FROM meals m
 		WHERE m.date >= strftime('%s', 'now', ? || ' days') * 1000
+		AND m.deleted_at IS NULL
 		ORDER BY m.date DESC
 	`, fmt.Sprintf("-%d", days))
 	if err != nil {
@@ -136,8 +212,16 @@ func (s *Storage) GetRecentMeals(days int) ([]models.Meal, error) {
 	var meals []models.Meal
 	for rows.Next() {
 		var m models.Meal
-		if err := rows.Scan(&m.ID, &m.Slot, &m.Date, &m.Description); err != nil {
+		var deletedAt sql.NullInt64
+		var serverID sql.NullInt64
+		if err := rows.Scan(&m.ID, &m.Slot, &m.Date, &m.Description, &m.UpdatedAt, &deletedAt, &serverID); err != nil {
 			return nil, err
+		}
+		if deletedAt.Valid {
+			m.DeletedAt = &deletedAt.Int64
+		}
+		if serverID.Valid {
+			m.ServerID = serverID.Int64
 		}
 		m.Images, _ = s.GetImagesByMeal(m.ID)
 		meals = append(meals, m)
@@ -147,6 +231,190 @@ func (s *Storage) GetRecentMeals(days int) ([]models.Meal, error) {
 		meals = []models.Meal{}
 	}
 	return meals, nil
+}
+
+// --- Sync Operations ---
+
+func (s *Storage) GetMealByID(id int64) (*models.Meal, error) {
+	var m models.Meal
+	var deletedAt sql.NullInt64
+	var serverID sql.NullInt64
+	err := s.db.QueryRow(`
+		SELECT id, slot, date, description, updated_at, deleted_at, server_id
+		FROM meals
+		WHERE id = ? AND deleted_at IS NULL
+	`, id).Scan(&m.ID, &m.Slot, &m.Date, &m.Description, &m.UpdatedAt, &deletedAt, &serverID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if deletedAt.Valid {
+		m.DeletedAt = &deletedAt.Int64
+	}
+	if serverID.Valid {
+		m.ServerID = serverID.Int64
+	}
+	m.Images, _ = s.GetImagesByMeal(m.ID)
+	return &m, nil
+}
+
+func (s *Storage) UpdateMeal(m *models.Meal) error {
+	now := time.Now().UnixMilli()
+	result, err := s.db.Exec(`
+		UPDATE meals
+		SET slot = ?, date = ?, description = ?, updated_at = ?
+		WHERE id = ? AND deleted_at IS NULL
+	`, m.Slot, m.Date, m.Description, now, m.ID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	m.UpdatedAt = now
+	return nil
+}
+
+func (s *Storage) SoftDeleteMeal(id int64) error {
+	now := time.Now().UnixMilli()
+	result, err := s.db.Exec(`
+		UPDATE meals SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL
+	`, now, now, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (s *Storage) GetMealsSince(timestamp int64) ([]models.Meal, []int64, error) {
+	// Get all meals updated after timestamp (including deleted)
+	rows, err := s.db.Query(`
+		SELECT id, slot, date, description, updated_at, deleted_at, server_id
+		FROM meals
+		WHERE updated_at > ?
+		ORDER BY updated_at ASC
+	`, timestamp)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var meals []models.Meal
+	var deletedIDs []int64
+
+	for rows.Next() {
+		var m models.Meal
+		var deletedAt sql.NullInt64
+		var serverID sql.NullInt64
+		if err := rows.Scan(&m.ID, &m.Slot, &m.Date, &m.Description, &m.UpdatedAt, &deletedAt, &serverID); err != nil {
+			return nil, nil, err
+		}
+		if deletedAt.Valid {
+			m.DeletedAt = &deletedAt.Int64
+			deletedIDs = append(deletedIDs, m.ID)
+		}
+		if serverID.Valid {
+			m.ServerID = serverID.Int64
+		}
+		// Only load images for non-deleted meals
+		if m.DeletedAt == nil {
+			m.Images, _ = s.GetImagesByMeal(m.ID)
+		}
+		meals = append(meals, m)
+	}
+
+	if meals == nil {
+		meals = []models.Meal{}
+	}
+	if deletedIDs == nil {
+		deletedIDs = []int64{}
+	}
+
+	return meals, deletedIDs, nil
+}
+
+func (s *Storage) BulkSaveMeals(meals []models.Meal) ([]models.Meal, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	now := time.Now().UnixMilli()
+	results := make([]models.Meal, 0, len(meals))
+
+	for _, m := range meals {
+		// Check if meal exists (by server_id if provided, or by ID)
+		var existingID int64
+		if m.ServerID > 0 {
+			err := tx.QueryRow(`SELECT id FROM meals WHERE server_id = ?`, m.ServerID).Scan(&existingID)
+			if err != nil && err != sql.ErrNoRows {
+				return nil, err
+			}
+		}
+
+		if existingID > 0 {
+			// Update existing meal
+			_, err := tx.Exec(`
+				UPDATE meals
+				SET slot = ?, date = ?, description = ?, updated_at = ?, deleted_at = NULL
+				WHERE id = ?
+			`, m.Slot, m.Date, m.Description, now, existingID)
+			if err != nil {
+				return nil, err
+			}
+			m.ID = existingID
+			m.UpdatedAt = now
+		} else {
+			// Insert new meal
+			var result sql.Result
+			if m.ServerID > 0 {
+				result, err = tx.Exec(`
+					INSERT INTO meals (slot, date, description, updated_at, server_id)
+					VALUES (?, ?, ?, ?, ?)
+				`, m.Slot, m.Date, m.Description, now, m.ServerID)
+			} else {
+				result, err = tx.Exec(`
+					INSERT INTO meals (slot, date, description, updated_at)
+					VALUES (?, ?, ?, ?)
+				`, m.Slot, m.Date, m.Description, now)
+			}
+			if err != nil {
+				return nil, err
+			}
+			id, err := result.LastInsertId()
+			if err != nil {
+				return nil, err
+			}
+			m.ID = id
+			m.UpdatedAt = now
+		}
+
+		results = append(results, m)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }
 
 // --- Images ---

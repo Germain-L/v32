@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,24 +26,27 @@ func New(store *storage.Storage) *Handlers {
 
 func (h *Handlers) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
-	
+
 	// Health check (no auth)
 	mux.HandleFunc("/health", h.health)
-	
+
 	// Meals
 	mux.HandleFunc("/meals", h.mealsHandler)
 	mux.HandleFunc("/meals/recent", h.recentMeals)
-	
+	mux.HandleFunc("/meals/since", h.mealsSince)
+	mux.HandleFunc("/meals/bulk", h.bulkMeals)
+	mux.HandleFunc("/meals/", h.mealByID)
+
 	// Images
 	mux.HandleFunc("/images/", h.serveImage)
 	mux.HandleFunc("/upload", h.uploadImage)
-	
+
 	// Stats
 	mux.HandleFunc("/stats", h.stats)
-	
+
 	// Day ratings
 	mux.HandleFunc("/rating", h.ratingHandler)
-	
+
 	return mux
 }
 
@@ -131,6 +135,183 @@ func (h *Handlers) recentMeals(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(meals)
+}
+
+// --- Sync Operations ---
+
+func (h *Handlers) mealByID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Extract ID from path: /meals/{id}
+	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/meals/"), "/")
+	if len(pathParts) == 0 || pathParts[0] == "" {
+		http.Error(w, `{"error":"meal ID required"}`, http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.ParseInt(pathParts[0], 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid meal ID"}`, http.StatusBadRequest)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		h.getMealByID(w, r, id)
+	case http.MethodPut:
+		h.updateMeal(w, r, id)
+	case http.MethodDelete:
+		h.deleteMeal(w, r, id)
+	default:
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *Handlers) getMealByID(w http.ResponseWriter, r *http.Request, id int64) {
+	meal, err := h.store.GetMealByID(id)
+	if err != nil {
+		log.Printf("[ERROR] Get meal by ID failed: id=%d err=%v", id, err)
+		http.Error(w, fmt.Sprintf(`{"error":"database error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	if meal == nil {
+		http.Error(w, `{"error":"meal not found"}`, http.StatusNotFound)
+		return
+	}
+
+	log.Printf("[INFO] Get meal by ID: id=%d", id)
+	json.NewEncoder(w).Encode(meal)
+}
+
+func (h *Handlers) updateMeal(w http.ResponseWriter, r *http.Request, id int64) {
+	var m models.Meal
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		log.Printf("[ERROR] Invalid JSON: %v", err)
+		http.Error(w, fmt.Sprintf(`{"error":"invalid JSON: %v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	m.ID = id
+	if !m.Validate() {
+		log.Printf("[WARN] Invalid meal update: id=%d slot=%s date=%d", id, m.Slot, m.Date)
+		http.Error(w, `{"error":"invalid meal: slot must be breakfast/lunch/afternoonSnack/dinner, date required"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := h.store.UpdateMeal(&m); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error":"meal not found"}`, http.StatusNotFound)
+			return
+		}
+		log.Printf("[ERROR] Update meal failed: id=%d err=%v", id, err)
+		http.Error(w, fmt.Sprintf(`{"error":"update error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("[INFO] Meal updated: id=%d slot=%s date=%s", id, m.Slot, models.DateFromMillis(m.Date))
+	json.NewEncoder(w).Encode(m)
+}
+
+func (h *Handlers) deleteMeal(w http.ResponseWriter, r *http.Request, id int64) {
+	if err := h.store.SoftDeleteMeal(id); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error":"meal not found"}`, http.StatusNotFound)
+			return
+		}
+		log.Printf("[ERROR] Delete meal failed: id=%d err=%v", id, err)
+		http.Error(w, fmt.Sprintf(`{"error":"delete error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("[INFO] Meal soft deleted: id=%d", id)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) mealsSince(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	timestampStr := r.URL.Query().Get("timestamp")
+	if timestampStr == "" {
+		http.Error(w, `{"error":"timestamp parameter required (epoch millis)"}`, http.StatusBadRequest)
+		return
+	}
+
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid timestamp"}`, http.StatusBadRequest)
+		return
+	}
+
+	meals, deletedIDs, err := h.store.GetMealsSince(timestamp)
+	if err != nil {
+		log.Printf("[ERROR] Get meals since failed: timestamp=%d err=%v", timestamp, err)
+		http.Error(w, fmt.Sprintf(`{"error":"database error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	// Find the latest timestamp
+	var latestTimestamp int64
+	for _, m := range meals {
+		if m.UpdatedAt > latestTimestamp {
+			latestTimestamp = m.UpdatedAt
+		}
+	}
+
+	response := map[string]interface{}{
+		"meals":      meals,
+		"deletedIds": deletedIDs,
+		"timestamp":  latestTimestamp,
+	}
+
+	log.Printf("[INFO] Sync since %d: %d meals, %d deleted", timestamp, len(meals), len(deletedIDs))
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *Handlers) bulkMeals(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	var meals []models.Meal
+	if err := json.NewDecoder(r.Body).Decode(&meals); err != nil {
+		log.Printf("[ERROR] Invalid JSON: %v", err)
+		http.Error(w, fmt.Sprintf(`{"error":"invalid JSON: %v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	if len(meals) == 0 {
+		http.Error(w, `{"error":"no meals provided"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Validate all meals
+	for i, m := range meals {
+		if !m.Validate() {
+			log.Printf("[WARN] Invalid meal in bulk at index %d: slot=%s date=%d", i, m.Slot, m.Date)
+			http.Error(w, fmt.Sprintf(`{"error":"invalid meal at index %d"}`, i), http.StatusBadRequest)
+			return
+		}
+	}
+
+	results, err := h.store.BulkSaveMeals(meals)
+	if err != nil {
+		log.Printf("[ERROR] Bulk save meals failed: err=%v", err)
+		http.Error(w, fmt.Sprintf(`{"error":"bulk save error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("[INFO] Bulk saved %d meals", len(results))
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(results)
 }
 
 // --- Images ---
