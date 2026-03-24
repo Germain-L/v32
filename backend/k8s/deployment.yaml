@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: harbor.gmn.lan/v32/backend:latest
+          image: registry.germainleignel.com/library/v32-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
