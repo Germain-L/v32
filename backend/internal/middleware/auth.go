@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -21,6 +22,7 @@ func Auth(apiKey string, next http.Handler) http.Handler {
 
 		providedKey := r.Header.Get("X-API-Key")
 		if providedKey == "" {
+			log.Printf("[AUTH] Missing API key for %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]string{"error": "missing API key"})
@@ -28,6 +30,7 @@ func Auth(apiKey string, next http.Handler) http.Handler {
 		}
 
 		if providedKey != apiKey {
+			log.Printf("[AUTH] Invalid API key for %s %s from %s", r.Method, r.URL.Path, r.RemoteAddr)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]string{"error": "invalid API key"})
