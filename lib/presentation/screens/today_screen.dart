@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../data/repositories/repository_factory.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/l10n_helper.dart';
@@ -44,7 +45,11 @@ class _TodayScreenState extends State<TodayScreen>
       _provider = widget.provider!;
       _ownsProvider = false;
     } else {
-      _provider = TodayProvider(MealRepository(), DayRatingRepository());
+      // Use RepositoryFactory to get the sync-enabled repository
+      _provider = TodayProvider(
+        RepositoryFactory().getMealRepository(),
+        RepositoryFactory().getDayRatingRepository(),
+      );
       _ownsProvider = true;
     }
     for (final slot in MealSlot.values) {

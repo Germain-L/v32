@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
 import '../../data/repositories/day_rating_repository.dart';
 import '../../data/repositories/meal_repository.dart';
+import '../../data/repositories/repository_factory.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../utils/date_formatter.dart';
 import '../../utils/l10n_helper.dart';
@@ -140,8 +141,8 @@ class _DayDetailPageState extends State<DayDetailPage>
   void initState() {
     super.initState();
     _provider = DayDetailProvider(
-      MealRepository(),
-      DayRatingRepository(),
+      RepositoryFactory().getMealRepository(),
+      RepositoryFactory().getDayRatingRepository(),
       widget.date,
     );
     for (final slot in MealSlot.values) {
