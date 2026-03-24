@@ -29,6 +29,8 @@ spec:
                   key: api-key
             - name: DB_PATH
               value: /data/meals.db
+            - name: UPLOAD_PATH
+              value: /data/uploads
           volumeMounts:
             - name: data
               mountPath: /data

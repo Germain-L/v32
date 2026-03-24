@@ -1,34 +1,18 @@
 # v32 Meal Sync Backend
 
-A minimal Go HTTP backend for syncing meal data from the v32 Flutter app.
+A Go HTTP backend for syncing meal data from the v32 Flutter app. Designed for Clanker (AI assistant) to query what you ate.
 
 ## API Endpoints
 
 ### `GET /health`
-Health check endpoint (no auth required, used by Kubernetes probes).
+Health check (no auth required).
 
-### `POST /meals`
-Save a meal to the backend.
+### Meals
 
-**Headers:**
-- `X-API-Key`: Your API key (required)
-- `Content-Type`: application/json
+#### `GET /meals?date=YYYY-MM-DD`
+Get all meals for a specific date, including images.
 
-**Body:**
-```json
-{
-  "slot": "breakfast",
-  "date": 1711296000000,
-  "description": "Oatmeal with berries",
-  "imagePath": null
-}
-```
-
-### `GET /meals?date=YYYY-MM-DD`
-Get meals for a specific date.
-
-**Headers:**
-- `X-API-Key`: Your API key (required)
+**Headers:** `X-API-Key: <key>`
 
 **Response:**
 ```json
@@ -38,80 +22,141 @@ Get meals for a specific date.
     "slot": "breakfast",
     "date": 1711296000000,
     "description": "Oatmeal with berries",
-    "imagePath": null
+    "images": [
+      {"id": 1, "mealId": 1, "filename": "photo.jpg", "url": "/images/1/photo.jpg"}
+    ]
   }
 ]
+```
+
+#### `POST /meals`
+Save a meal.
+
+**Headers:** `X-API-Key: <key>`, `Content-Type: application/json`
+
+**Body:**
+```json
+{
+  "slot": "breakfast",
+  "date": 1711296000000,
+  "description": "Oatmeal with berries"
+}
+```
+
+#### `GET /meals/recent?days=7`
+Get meals from the last N days (default 7, max 30).
+
+### Images
+
+#### `POST /upload`
+Upload an image for a meal.
+
+**Headers:** `X-API-Key: <key>`, `Content-Type: multipart/form-data`
+
+**Form fields:**
+- `mealId` (required) - the meal ID
+- `image` (required) - the image file (max 20MB)
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "filename": "photo.jpg",
+  "url": "/images/1/photo.jpg"
+}
+```
+
+#### `GET /images/{mealId}/{filename}`
+Serve an image (no auth required for viewing).
+
+### Stats
+
+#### `GET /stats`
+Get usage statistics.
+
+**Response:**
+```json
+{
+  "totalMeals": 156,
+  "mealsBySlot": {"breakfast": 40, "lunch": 42, "afternoonSnack": 35, "dinner": 39},
+  "currentStreak": 7,
+  "daysLogged": 45,
+  "avgRating": 3.8
+}
+```
+
+### Day Ratings
+
+#### `GET /rating?date=<epoch_millis>`
+Get the rating for a specific day.
+
+#### `POST /rating`
+Save a day rating (1-5).
+
+**Body:**
+```json
+{
+  "date": 1711296000000,
+  "score": 4
+}
 ```
 
 ## Building
 
 ```bash
-# Build locally
-go build -o server .
-
-# Build Docker image
-docker build -t v32-backend:latest .
+cd /home/gmn/apps/v32/backend
+go mod tidy
+go build -o server ./cmd/server
 ```
 
 ## Deploying to k3s
 
-1. **Build and push image** to Harbor:
-   ```bash
-   cd /home/gmn/apps/v32/backend
-   docker build -t harbor.gmn.lan/v32/backend:latest .
-   docker push harbor.gmn.lan/v32/backend:latest
-   ```
+```bash
+# Build and push
+docker build -t harbor.gmn.lan/v32/backend:latest .
+docker push harbor.gmn.lan/v32/backend:latest
 
-2. **Deploy to k3s**:
-   ```bash
-   kubectl apply -k k8s/
-   ```
-
-3. **Verify**:
-   ```bash
-   kubectl get pods -l app=v32-backend
-   kubectl logs -l app=v32-backend
-   curl https://v32.germainleignel.com/health
-   ```
-
-## Configuration
-
-Environment variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `API_KEY` | (required) | API key for authentication |
-| `DB_PATH` | `/data/meals.db` | Path to SQLite database |
-| `PORT` | `8080` | Server port |
+# Deploy
+kubectl apply -k k8s/
+```
 
 ## API Key
-
-The generated API key for this deployment is:
 
 ```
 v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1
 ```
 
-This is stored in the Kubernetes secret `v32-backend-secret`.
+## Clanker Usage
 
-## Querying from Clanker
-
-Once deployed, Clanker can query meals:
-
+Query today's meals:
 ```bash
 curl -H "X-API-Key: v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1" \
   https://v32.germainleignel.com/meals?date=2026-03-24
 ```
 
-## Flutter Integration
-
-The Flutter app has been updated with:
-
-1. `SyncService` - Handles syncing meals to backend
-2. `SyncingMealRepository` - Wrapper that auto-syncs on save
-3. `SyncConfig` - Configuration for sync URL and API key
-
-The sync is enabled by default. To configure at build time:
+Get recent meals for pattern analysis:
 ```bash
-flutter build apk --dart-define=SYNC_URL=https://v32.germainleignel.com --dart-define=SYNC_API_KEY=v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1
+curl -H "X-API-Key: v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1" \
+  https://v32.germainleignel.com/meals/recent?days=7
+```
+
+Get stats:
+```bash
+curl -H "X-API-Key: v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1" \
+  https://v32.germainleignel.com/stats
+```
+
+## Project Structure
+
+```
+backend/
+├── cmd/server/main.go      # Entry point
+├── internal/
+│   ├── handlers/           # HTTP handlers
+│   ├── middleware/         # Auth middleware
+│   ├── models/             # Data models
+│   └── storage/            # Database & file storage
+├── k8s/                    # Kubernetes manifests
+├── Dockerfile
+└── README.md
 ```

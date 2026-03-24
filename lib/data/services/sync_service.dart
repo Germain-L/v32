@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import '../models/meal.dart';
+import '../models/meal_image.dart';
 import '../models/sync_operation.dart';
 import 'database_service.dart';
 import 'sync_queue.dart';
 
-/// Service for syncing meals to the backend server.
-/// Handles both immediate sync and retry logic via sync_queue.
+/// Service for syncing meals and images to the backend server.
 class SyncService {
   static SyncService? _instance;
   
@@ -24,8 +24,6 @@ class SyncService {
     required this.syncQueue,
   });
   
-  /// Initialize the sync service with configuration.
-  /// Should be called once at app startup.
   static void init({
     required String baseUrl,
     required String apiKey,
@@ -38,8 +36,6 @@ class SyncService {
     );
   }
   
-  /// Get the singleton instance.
-  /// Throws if not initialized.
   static SyncService get instance {
     if (_instance == null) {
       throw StateError('SyncService not initialized. Call SyncService.init() first.');
@@ -47,26 +43,19 @@ class SyncService {
     return _instance!;
   }
   
-  /// Start periodic sync (every 5 minutes by default).
   void startPeriodicSync({Duration interval = const Duration(minutes: 5)}) {
     _periodicSyncTimer?.cancel();
     _periodicSyncTimer = Timer.periodic(interval, (_) => syncPendingOperations());
-    
-    // Also sync on startup
     syncPendingOperations();
   }
   
-  /// Stop periodic sync.
   void stopPeriodicSync() {
     _periodicSyncTimer?.cancel();
     _periodicSyncTimer = null;
   }
   
-  /// Sync a meal immediately.
-  /// If it fails, the operation is queued for retry.
+  /// Sync a meal to the backend.
   Future<bool> syncMeal(Meal meal, OperationType operation) async {
-    final operationType = operation;
-    
     try {
       final client = HttpClient();
       final uri = Uri.parse('$baseUrl/meals');
@@ -75,7 +64,11 @@ class SyncService {
       request.headers.set('X-API-Key', apiKey);
       request.headers.contentType = ContentType.json;
       
-      final payload = meal.toMap();
+      final payload = {
+        'slot': meal.slot.name,
+        'date': meal.date.millisecondsSinceEpoch,
+        'description': meal.description,
+      };
       request.write(jsonEncode(payload));
       
       final response = await request.close();
@@ -83,20 +76,64 @@ class SyncService {
       client.close();
       
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(body);
+        final serverMealId = responseData['id'];
+        
+        // Upload images for this meal
+        if (meal.images.isNotEmpty && serverMealId != null) {
+          for (final image in meal.images) {
+            await uploadImage(serverMealId, File(image.imagePath));
+          }
+        }
+        
         return true;
       } else {
-        // Queue for retry
-        await _enqueueFailedSync(meal, operationType);
+        await _enqueueFailedSync(meal, operation);
         return false;
       }
     } catch (e) {
-      // Network error or other failure - queue for retry
-      await _enqueueFailedSync(meal, operationType);
+      await _enqueueFailedSync(meal, operation);
       return false;
     }
   }
   
-  /// Sync all pending operations from the queue.
+  /// Upload an image for a meal.
+  Future<bool> uploadImage(int mealId, File imageFile) async {
+    try {
+      final client = HttpClient();
+      final uri = Uri.parse('$baseUrl/upload');
+      final request = await client.postUrl(uri);
+      
+      request.headers.set('X-API-Key', apiKey);
+      
+      // Multipart form data
+      final boundary = '----ClankerBoundary${DateTime.now().millisecondsSinceEpoch}';
+      request.headers.contentType = ContentType.parse('multipart/form-data; boundary=$boundary');
+      
+      final bytes = await imageFile.readAsBytes();
+      final filename = imageFile.path.split('/').last;
+      
+      final body = StringBuffer();
+      body.write('--$boundary\r\n');
+      body.write('Content-Disposition: form-data; name="mealId"\r\n\r\n');
+      body.write('$mealId\r\n');
+      body.write('--$boundary\r\n');
+      body.write('Content-Disposition: form-data; name="image"; filename="$filename"\r\n');
+      body.write('Content-Type: image/jpeg\r\n\r\n');
+      
+      request.write(body.toString());
+      request.write(bytes);
+      request.write('\r\n--$boundary--\r\n');
+      
+      final response = await request.close();
+      client.close();
+      
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (e) {
+      return false;
+    }
+  }
+  
   Future<void> syncPendingOperations() async {
     if (_isSyncing) return;
     _isSyncing = true;
@@ -143,7 +180,11 @@ class SyncService {
       id: '${DateTime.now().millisecondsSinceEpoch}_${meal.id ?? 'new'}',
       entityType: 'meal',
       operationType: operationType,
-      payload: meal.toMap(),
+      payload: {
+        'slot': meal.slot.name,
+        'date': meal.date.millisecondsSinceEpoch,
+        'description': meal.description,
+      },
       createdAt: DateTime.now(),
     );
     
@@ -151,8 +192,7 @@ class SyncService {
   }
   
   /// Get meals from the backend for a specific date.
-  /// Useful for Clanker to query what was eaten.
-  Future<List<Meal>> getMealsForDate(DateTime date) async {
+  Future<List<Map<String, dynamic>>> getMealsForDate(DateTime date) async {
     try {
       final client = HttpClient();
       final dateStr = '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -167,7 +207,7 @@ class SyncService {
       
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(body);
-        return data.map((json) => Meal.fromMap(json)).toList();
+        return data.cast<Map<String, dynamic>>();
       } else {
         throw Exception('Failed to fetch meals: ${response.statusCode}');
       }
@@ -176,7 +216,30 @@ class SyncService {
     }
   }
   
-  /// Check if backend is reachable.
+  /// Get recent meals from the backend.
+  Future<List<Map<String, dynamic>>> getRecentMeals({int days = 7}) async {
+    try {
+      final client = HttpClient();
+      final uri = Uri.parse('$baseUrl/meals/recent?days=$days');
+      final request = await client.getUrl(uri);
+      
+      request.headers.set('X-API-Key', apiKey);
+      
+      final response = await request.close();
+      final body = await response.transform(utf8.decoder).join();
+      client.close();
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(body);
+        return data.cast<Map<String, dynamic>>();
+      } else {
+        throw Exception('Failed to fetch meals: ${response.statusCode}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+  
   Future<bool> healthCheck() async {
     try {
       final client = HttpClient();
