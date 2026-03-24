@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'dart:io';
 import '../models/meal.dart';
 import '../models/meal_image.dart';
@@ -34,6 +35,7 @@ class SyncService {
       apiKey: apiKey,
       syncQueue: syncQueue,
     );
+    _log('SyncService initialized: baseUrl=$baseUrl');
   }
   
   static SyncService get instance {
@@ -43,21 +45,30 @@ class SyncService {
     return _instance!;
   }
   
+  static void _log(String message) {
+    dev.log('[SYNC] $message', name: 'v32');
+  }
+  
   void startPeriodicSync({Duration interval = const Duration(minutes: 5)}) {
     _periodicSyncTimer?.cancel();
     _periodicSyncTimer = Timer.periodic(interval, (_) => syncPendingOperations());
+    _log('Started periodic sync (every ${interval.inMinutes} minutes)');
     syncPendingOperations();
   }
   
   void stopPeriodicSync() {
     _periodicSyncTimer?.cancel();
     _periodicSyncTimer = null;
+    _log('Stopped periodic sync');
   }
   
   /// Sync a meal to the backend.
   Future<bool> syncMeal(Meal meal, OperationType operation) async {
+    _log('Syncing meal: slot=${meal.slot.name}, date=${meal.date}, id=${meal.id}');
+    
     try {
       final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 10);
       final uri = Uri.parse('$baseUrl/meals');
       final request = await client.postUrl(uri);
       
@@ -71,16 +82,22 @@ class SyncService {
       };
       request.write(jsonEncode(payload));
       
+      _log('Sending POST $baseUrl/meals');
+      
       final response = await request.close();
       final body = await response.transform(utf8.decoder).join();
       client.close();
       
+      _log('Response: ${response.statusCode} - $body');
+      
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(body);
         final serverMealId = responseData['id'];
+        _log('Meal synced successfully, server ID: $serverMealId');
         
         // Upload images for this meal
         if (meal.images.isNotEmpty && serverMealId != null) {
+          _log('Uploading ${meal.images.length} images...');
           for (final image in meal.images) {
             await uploadImage(serverMealId, File(image.imagePath));
           }
@@ -88,10 +105,12 @@ class SyncService {
         
         return true;
       } else {
+        _log('Sync failed: ${response.statusCode}');
         await _enqueueFailedSync(meal, operation);
         return false;
       }
     } catch (e) {
+      _log('Sync error: $e');
       await _enqueueFailedSync(meal, operation);
       return false;
     }
@@ -99,8 +118,11 @@ class SyncService {
   
   /// Upload an image for a meal.
   Future<bool> uploadImage(int mealId, File imageFile) async {
+    _log('Uploading image for meal $mealId: ${imageFile.path}');
+    
     try {
       final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 30);
       final uri = Uri.parse('$baseUrl/upload');
       final request = await client.postUrl(uri);
       
@@ -128,18 +150,25 @@ class SyncService {
       final response = await request.close();
       client.close();
       
-      return response.statusCode == 200 || response.statusCode == 201;
+      final success = response.statusCode == 200 || response.statusCode == 201;
+      _log('Image upload ${success ? "success" : "failed"}: ${response.statusCode}');
+      return success;
     } catch (e) {
+      _log('Image upload error: $e');
       return false;
     }
   }
   
   Future<void> syncPendingOperations() async {
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      _log('Sync already in progress, skipping');
+      return;
+    }
     _isSyncing = true;
     
     try {
       final operations = await syncQueue.getPendingOperations();
+      _log('Found ${operations.length} pending operations');
       
       for (final op in operations) {
         if (op.entityType != 'meal') continue;
@@ -147,8 +176,10 @@ class SyncService {
         final success = await _syncOperation(op);
         if (success) {
           await syncQueue.markCompleted(op.id);
+          _log('Operation ${op.id} completed');
         } else {
           await syncQueue.markFailed(op.id);
+          _log('Operation ${op.id} failed');
         }
       }
     } finally {
@@ -159,6 +190,7 @@ class SyncService {
   Future<bool> _syncOperation(SyncOperation op) async {
     try {
       final client = HttpClient();
+      client.connectionTimeout = const Duration(seconds: 10);
       final uri = Uri.parse('$baseUrl/meals');
       final request = await client.postUrl(uri);
       
@@ -171,11 +203,14 @@ class SyncService {
       
       return response.statusCode == 200 || response.statusCode == 201;
     } catch (e) {
+      _log('Sync operation error: $e');
       return false;
     }
   }
   
   Future<void> _enqueueFailedSync(Meal meal, OperationType operationType) async {
+    _log('Enqueueing failed sync for later retry');
+    
     final operation = SyncOperation(
       id: '${DateTime.now().millisecondsSinceEpoch}_${meal.id ?? 'new'}',
       entityType: 'meal',
@@ -250,8 +285,11 @@ class SyncService {
       final response = await request.close();
       client.close();
       
-      return response.statusCode == 200;
+      final healthy = response.statusCode == 200;
+      _log('Health check: $healthy');
+      return healthy;
     } catch (e) {
+      _log('Health check failed: $e');
       return false;
     }
   }

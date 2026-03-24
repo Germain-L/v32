@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import '../models/meal.dart';
 import '../models/sync_operation.dart';
 import '../services/sync_config.dart';
@@ -21,26 +22,42 @@ class SyncingMealRepository implements MealRepository {
   
   /// Create with sync enabled (if configured).
   factory SyncingMealRepository.withSync() {
+    _log('Creating SyncingMealRepository, sync enabled: ${SyncConfig.enabled}');
+    
     if (!SyncConfig.enabled) {
+      _log('Sync disabled by config');
       return SyncingMealRepository(syncService: null);
     }
     
     try {
       final syncService = SyncService.instance;
+      _log('SyncService obtained successfully');
       return SyncingMealRepository(syncService: syncService);
-    } catch (_) {
-      // SyncService not initialized - sync disabled
+    } catch (e) {
+      _log('SyncService not initialized - sync disabled: $e');
       return SyncingMealRepository(syncService: null);
     }
   }
   
+  static void _log(String message) {
+    dev.log('[REPO] $message', name: 'v32');
+  }
+  
   @override
   Future<Meal> saveMeal(Meal meal) async {
+    _log('saveMeal called: slot=${meal.slot.name}, id=${meal.id}');
+    
     // Save locally first
     final saved = await _localRepo.saveMeal(meal);
+    _log('Meal saved locally: id=${saved.id}');
     
     // Then sync in background (don't await)
-    _syncService?.syncMeal(saved, meal.id == null ? OperationType.create : OperationType.update);
+    if (_syncService != null) {
+      _log('Triggering sync...');
+      _syncService!.syncMeal(saved, meal.id == null ? OperationType.create : OperationType.update);
+    } else {
+      _log('No sync service - skipping sync');
+    }
     
     return saved;
   }
@@ -50,6 +67,7 @@ class SyncingMealRepository implements MealRepository {
   
   @override
   Future<void> deleteMeal(int id) async {
+    _log('deleteMeal called: id=$id');
     // Delete locally first
     await _localRepo.deleteMeal(id);
     
