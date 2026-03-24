@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gmn/v32-backend/internal/models"
 	"github.com/gmn/v32-backend/internal/storage"
@@ -138,7 +139,7 @@ func (h *Handlers) uploadImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse multipart form (max 20MB)
-	if err := r.ParseMultipartMemory(20 << 20); err != nil {
+	if err := r.ParseMultipartForm(20 << 20); err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":"parse error: %v"}`, err), http.StatusBadRequest)
 		return
 	}
@@ -175,10 +176,7 @@ func (h *Handlers) uploadImage(w http.ResponseWriter, r *http.Request) {
 	if ext == "" {
 		ext = ".jpg"
 	}
-	filename := fmt.Sprintf("%d%s", r.Context().Value("requestId"), ext)
-	if filename == ext {
-		filename = fmt.Sprintf("%d_%s", mealID, header.Filename)
-	}
+	filename := fmt.Sprintf("%d_%d%s", mealID, time.Now().UnixNano(), ext)
 
 	// Save file
 	if err := h.store.SaveImageFile(mealID, filename, data); err != nil {

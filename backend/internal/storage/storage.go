@@ -252,8 +252,12 @@ func (s *Storage) GetStats() (*models.Stats, error) {
 	}
 
 	// Average rating
-	if err := s.db.QueryRow("SELECT AVG(score) FROM day_ratings").Scan(&stats.AvgRating); err != nil && err != sql.ErrNoRows {
+	var avgRating sql.NullFloat64
+	if err := s.db.QueryRow("SELECT AVG(score) FROM day_ratings").Scan(&avgRating); err != nil && err != sql.ErrNoRows {
 		return nil, err
+	}
+	if avgRating.Valid {
+		stats.AvgRating = avgRating.Float64
 	}
 
 	// Current streak (consecutive days with meals)
