@@ -2,8 +2,8 @@ import 'daily_metrics_repository_interface.dart';
 import 'day_rating_repository_interface.dart';
 import 'local_daily_metrics_repository.dart';
 import 'local_day_rating_repository.dart';
-import 'local_meal_repository.dart';
 import 'meal_repository_interface.dart';
+import 'syncing_meal_repository.dart';
 
 /// Factory for repository instances.
 /// Allows injection of mock/test implementations.
@@ -18,7 +18,7 @@ class RepositoryFactory {
   DayRatingRepository? _dayRatingRepository;
 
   MealRepository getMealRepository() {
-    _mealRepository ??= LocalMealRepository();
+    _mealRepository ??= SyncingMealRepository.withSync();
     return _mealRepository!;
   }
 
