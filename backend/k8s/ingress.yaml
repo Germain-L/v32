@@ -5,9 +5,14 @@ metadata:
   namespace: default
   annotations:
     kubernetes.io/ingress.class: traefik
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
+  tls:
+    - hosts:
+        - v32.germainleignel.com
+      secretName: v32-backend-tls
   rules:
-    - host: v32.gmn.lan
+    - host: v32.germainleignel.com
       http:
         paths:
           - path: /

@@ -2,10 +2,9 @@
 /// These values should be updated with your actual deployment details.
 class SyncConfig {
   /// Backend URL (without trailing slash).
-  /// Example: 'https://v32.gmn.lan' or 'http://192.168.1.100:8080'
   static const String baseUrl = String.fromEnvironment(
     'SYNC_URL',
-    defaultValue: 'http://v32.gmn.lan',
+    defaultValue: 'https://v32.germainleignel.com',
   );
   
   /// API key for authentication.
