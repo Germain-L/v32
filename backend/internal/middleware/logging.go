@@ -6,9 +6,15 @@ import (
 	"time"
 )
 
-// Logging middleware logs all incoming requests
+// Logging middleware logs all incoming requests (except health checks)
 func Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip logging health checks
+		if r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		
 		start := time.Now()
 		
 		// Wrap response writer to capture status code
