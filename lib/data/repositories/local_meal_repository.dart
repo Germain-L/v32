@@ -103,7 +103,7 @@ class LocalMealRepository implements MealRepository {
     return _getMealsForDateRange(startOfDay, endOfDay);
   }
 
-  // History with pagination - not part of interface but kept for internal use
+  @override
   Future<List<Meal>> getMealsBefore(DateTime date, {int limit = 20}) async {
     final db = await DatabaseService.database;
     final maps = await db.query(
@@ -117,6 +117,7 @@ class LocalMealRepository implements MealRepository {
     return maps.map((map) => Meal.fromMap(map)).toList();
   }
 
+  @override
   Future<List<Meal>> getMealsBeforeCursor(
     DateTime date, {
     int? id,
@@ -147,7 +148,7 @@ class LocalMealRepository implements MealRepository {
     return maps.map((map) => Meal.fromMap(map)).toList();
   }
 
-  // Calendar view - meals by month - not part of interface but kept for internal use
+  @override
   Future<List<Meal>> getMealsForMonth(int year, int month) async {
     final db = await DatabaseService.database;
     final start = DateTime(year, month, 1);
