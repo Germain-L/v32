@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -86,20 +87,24 @@ func (h *Handlers) getMeals(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) saveMeal(w http.ResponseWriter, r *http.Request) {
 	var m models.Meal
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		log.Printf("[ERROR] Invalid JSON: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"invalid JSON: %v"}`, err), http.StatusBadRequest)
 		return
 	}
 
 	if !m.Validate() {
+		log.Printf("[WARN] Invalid meal: slot=%s, date=%d", m.Slot, m.Date)
 		http.Error(w, `{"error":"invalid meal: slot must be breakfast/lunch/afternoonSnack/dinner, date required"}`, http.StatusBadRequest)
 		return
 	}
 
 	if err := h.store.SaveMeal(&m); err != nil {
+		log.Printf("[ERROR] Save meal failed: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"save error: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("[INFO] Meal saved: id=%d slot=%s date=%s", m.ID, m.Slot, models.DateFromMillis(m.Date))
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(m)
 }
@@ -140,6 +145,7 @@ func (h *Handlers) uploadImage(w http.ResponseWriter, r *http.Request) {
 
 	// Parse multipart form (max 20MB)
 	if err := r.ParseMultipartForm(20 << 20); err != nil {
+		log.Printf("[ERROR] Parse multipart: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"parse error: %v"}`, err), http.StatusBadRequest)
 		return
 	}
@@ -159,6 +165,7 @@ func (h *Handlers) uploadImage(w http.ResponseWriter, r *http.Request) {
 	// Get file
 	file, header, err := r.FormFile("image")
 	if err != nil {
+		log.Printf("[ERROR] Get form file: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"file error: %v"}`, err), http.StatusBadRequest)
 		return
 	}
@@ -167,6 +174,7 @@ func (h *Handlers) uploadImage(w http.ResponseWriter, r *http.Request) {
 	// Read file data
 	data, err := io.ReadAll(file)
 	if err != nil {
+		log.Printf("[ERROR] Read file: %v", err)
 		http.Error(w, `{"error":"read error"}`, http.StatusInternalServerError)
 		return
 	}
@@ -180,16 +188,19 @@ func (h *Handlers) uploadImage(w http.ResponseWriter, r *http.Request) {
 
 	// Save file
 	if err := h.store.SaveImageFile(mealID, filename, data); err != nil {
+		log.Printf("[ERROR] Save image file: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"save error: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
 	// Save to database
 	if err := h.store.SaveImage(mealID, filename); err != nil {
+		log.Printf("[ERROR] Save image DB: %v", err)
 		http.Error(w, fmt.Sprintf(`{"error":"db error: %v"}`, err), http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("[INFO] Image uploaded: mealId=%d filename=%s size=%d bytes", mealID, filename, len(data))
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":   "ok",

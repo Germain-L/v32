@@ -26,19 +26,25 @@ func main() {
 		uploadPath = "/data/uploads"
 	}
 
+	log.Printf("Initializing v32 backend...")
+	log.Printf("Database: %s", dbPath)
+	log.Printf("Upload path: %s", uploadPath)
+
 	// Initialize storage
 	store, err := storage.New(dbPath, uploadPath)
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
 	defer store.Close()
+	log.Printf("Storage initialized successfully")
 
 	// Initialize handlers
 	h := handlers.New(store)
 
 	// Setup router with middleware
 	mux := h.Routes()
-	authMux := middleware.Auth(apiKey, mux)
+	loggingMux := middleware.Logging(mux)
+	authMux := middleware.Auth(apiKey, loggingMux)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -46,5 +52,7 @@ func main() {
 	}
 
 	log.Printf("Starting server on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, authMux))
+	if err := http.ListenAndServe(":"+port, authMux); err != nil {
+		log.Fatalf("Server error: %v", err)
+	}
 }
