@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
 import 'data/services/sync_config.dart';
 import 'data/services/sync_service.dart';
 import 'data/services/sqlite_sync_queue.dart';
@@ -19,7 +20,19 @@ void main() async {
         apiKey: SyncConfig.apiKey,
         syncQueue: SQLiteSyncQueue(),
       );
-      SyncService.instance.startPeriodicSync();
+
+      // Perform initial sync on app start
+      debugPrint('[MAIN] Performing initial sync...');
+      unawaited(SyncService.instance.fullSync());
+
+      // Start periodic sync (every 5 minutes)
+      SyncService.instance.startPeriodicSync(
+        interval: const Duration(minutes: 5),
+      );
+
+      // Listen for connectivity changes and sync when coming online
+      _setupConnectivityListener();
+
       debugPrint('[MAIN] Sync service initialized successfully');
     } catch (e) {
       debugPrint('[MAIN] Failed to initialize sync service: $e');
@@ -29,4 +42,21 @@ void main() async {
   }
 
   runApp(const DietApp());
+}
+
+/// Set up connectivity listener to sync when coming back online
+void _setupConnectivityListener() {
+  final connectivity = Connectivity();
+
+  connectivity.onConnectivityChanged.listen((List<ConnectivityResult> results) {
+    // If we have any connectivity (not none)
+    final hasConnection = results.any(
+      (r) => r != ConnectivityResult.none,
+    );
+
+    if (hasConnection && SyncService.isInitialized) {
+      debugPrint('[MAIN] Connection restored, triggering sync...');
+      unawaited(SyncService.instance.fullSync());
+    }
+  });
 }

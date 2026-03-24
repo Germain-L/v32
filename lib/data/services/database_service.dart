@@ -35,7 +35,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -45,7 +45,7 @@ class DatabaseService {
   static Future<void> useInMemoryDatabaseForTesting() async {
     _database = await openDatabase(
       inMemoryDatabasePath,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -55,15 +55,20 @@ class DatabaseService {
     await db.execute('''
       CREATE TABLE meals(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id INTEGER,
         slot TEXT NOT NULL,
         date INTEGER NOT NULL,
         description TEXT,
-        imagePath TEXT
+        imagePath TEXT,
+        updated_at INTEGER NOT NULL,
+        pending_sync INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
     await db.execute('CREATE INDEX idx_date ON meals(date)');
     await db.execute('CREATE INDEX idx_slot ON meals(slot)');
+    await db.execute('CREATE INDEX idx_server_id ON meals(server_id)');
+    await db.execute('CREATE INDEX idx_pending_sync ON meals(pending_sync)');
 
     // Create meal_images table
     await db.execute('''
@@ -112,6 +117,14 @@ class DatabaseService {
     await db.execute(
       'CREATE INDEX idx_sync_queue_created_at ON sync_queue(created_at)',
     );
+
+    // Create sync_metadata table for tracking last sync timestamp
+    await db.execute('''
+      CREATE TABLE sync_metadata(
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
   }
 
   static Future<void> _onUpgrade(
@@ -170,6 +183,27 @@ class DatabaseService {
       ''');
       await db.execute('CREATE INDEX idx_meal_images_mealId ON meal_images(mealId)');
       await db.execute('CREATE INDEX idx_meal_images_createdAt ON meal_images(createdAt)');
+    }
+    if (oldVersion < 6) {
+      // Add remote-first sync columns
+      await db.execute('ALTER TABLE meals ADD COLUMN server_id INTEGER');
+      await db.execute('ALTER TABLE meals ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE meals ADD COLUMN pending_sync INTEGER NOT NULL DEFAULT 0');
+
+      // Create indexes for new columns
+      await db.execute('CREATE INDEX idx_server_id ON meals(server_id)');
+      await db.execute('CREATE INDEX idx_pending_sync ON meals(pending_sync)');
+
+      // Create sync_metadata table
+      await db.execute('''
+        CREATE TABLE sync_metadata(
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL
+        )
+      ''');
+
+      // Set updated_at for existing meals
+      await db.execute('UPDATE meals SET updated_at = date WHERE updated_at = 0');
     }
   }
   static Stream<void> watchTable(String table) {
