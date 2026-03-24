@@ -55,21 +55,28 @@ docker build -t v32-backend:latest .
 
 ## Deploying to k3s
 
-1. Push image to your registry:
+1. **Add DNS entry** (v32.gmn.lan points to 192.168.0.40):
    ```bash
-   docker tag v32-backend:latest harbor.gmn.lan/v32/backend:latest
+   echo "192.168.0.40 v32.gmn.lan" | sudo tee -a /etc/hosts
+   ```
+
+2. **Build and push image** to Harbor:
+   ```bash
+   cd /home/gmn/apps/v32/backend
+   docker build -t harbor.gmn.lan/v32/backend:latest .
    docker push harbor.gmn.lan/v32/backend:latest
    ```
 
-2. Apply Kubernetes manifests:
+3. **Deploy to k3s**:
    ```bash
-   kubectl apply -f k8s/
+   kubectl apply -k k8s/
    ```
 
-3. Verify deployment:
+4. **Verify**:
    ```bash
    kubectl get pods -l app=v32-backend
    kubectl logs -l app=v32-backend
+   curl http://v32.gmn.lan/health
    ```
 
 ## Configuration
@@ -92,6 +99,15 @@ v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1
 
 This is stored in the Kubernetes secret `v32-backend-secret`.
 
+## Querying from Clanker
+
+Once deployed, Clanker can query meals:
+
+```bash
+curl -H "X-API-Key: v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1" \
+  http://v32.gmn.lan/meals?date=2026-03-24
+```
+
 ## Flutter Integration
 
 The Flutter app has been updated with:
@@ -100,19 +116,13 @@ The Flutter app has been updated with:
 2. `SyncingMealRepository` - Wrapper that auto-syncs on save
 3. `SyncConfig` - Configuration for sync URL and API key
 
-The sync is enabled by default. To configure:
+**Note:** The app uses HTTP (not HTTPS) for local network access. Android requires cleartext traffic to be enabled in `android/app/src/main/AndroidManifest.xml`:
 
-```dart
-// At app startup (already in main.dart):
-SyncService.init(
-  baseUrl: 'https://v32.gmn.lan',
-  apiKey: 'v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1',
-  syncQueue: SQLiteSyncQueue(),
-);
-SyncService.instance.startPeriodicSync();
+```xml
+<application android:usesCleartextTraffic="true" ...>
 ```
 
-Or via environment variables at build time:
+The sync is enabled by default. To configure at build time:
 ```bash
-flutter build apk --dart-define=SYNC_URL=https://v32.gmn.lan --dart-define=SYNC_API_KEY=v32_sk_...
+flutter build apk --dart-define=SYNC_URL=http://v32.gmn.lan --dart-define=SYNC_API_KEY=v32_sk_d7f3a9c2e8b1f4d6a5c3e9f0b2d8a7c1
 ```

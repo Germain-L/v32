@@ -5,7 +5,7 @@ class SyncConfig {
   /// Example: 'https://v32.gmn.lan' or 'http://192.168.1.100:8080'
   static const String baseUrl = String.fromEnvironment(
     'SYNC_URL',
-    defaultValue: 'https://v32.gmn.lan',
+    defaultValue: 'http://v32.gmn.lan',
   );
   
   /// API key for authentication.
