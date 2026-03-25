@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:async';
 import 'data/services/sync_config.dart';
@@ -9,7 +8,6 @@ import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   // Initialize sync service if enabled
   if (SyncConfig.enabled) {

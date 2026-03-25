@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   static ThemeData light() {
@@ -40,11 +39,7 @@ class AppTheme {
           ? const Color(0xFFB71C1C)
           : const Color(0xFFFFEBEE),
     );
-    final baseTextTheme = GoogleFonts.manropeTextTheme();
-    final textTheme = baseTextTheme.apply(
-      bodyColor: colorScheme.onSurface,
-      displayColor: colorScheme.onSurface,
-    );
+    final textTheme = _createManropeTextTheme(colorScheme);
 
     return ThemeData(
       useMaterial3: true,
@@ -86,6 +81,119 @@ class AppTheme {
         thickness: 1,
         space: 1,
       ),
+    );
+  }
+
+  static TextTheme _createManropeTextTheme(ColorScheme colorScheme) {
+    return TextTheme(
+      displayLarge: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 57,
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.25,
+        color: Colors.black,
+      ),
+      displayMedium: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 45,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0,
+        color: Colors.black,
+      ),
+      displaySmall: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 36,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0,
+        color: Colors.black,
+      ),
+      headlineLarge: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 32,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0,
+        color: Colors.black,
+      ),
+      headlineMedium: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 28,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0,
+        color: Colors.black,
+      ),
+      headlineSmall: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 24,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0,
+        color: Colors.black,
+      ),
+      titleLarge: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 22,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0,
+        color: Colors.black,
+      ),
+      titleMedium: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.15,
+        color: Colors.black,
+      ),
+      titleSmall: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        color: Colors.black,
+      ),
+      labelLarge: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.1,
+        color: Colors.black,
+      ),
+      labelMedium: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.5,
+        color: Colors.black,
+      ),
+      labelSmall: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.5,
+        color: Colors.black,
+      ),
+      bodyLarge: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.5,
+        color: Colors.black,
+      ),
+      bodyMedium: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.25,
+        color: Colors.black,
+      ),
+      bodySmall: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.4,
+        color: Colors.black,
+      ),
+    ).apply(
+      bodyColor: colorScheme.onSurface,
+      displayColor: colorScheme.onSurface,
     );
   }
 }
