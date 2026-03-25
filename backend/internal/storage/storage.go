@@ -48,8 +48,6 @@ func createTables(db *sql.DB) error {
 			server_id INTEGER UNIQUE
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_meals_date ON meals(date)`,
-		`CREATE INDEX IF NOT EXISTS idx_meals_updated_at ON meals(updated_at)`,
-		`CREATE INDEX IF NOT EXISTS idx_meals_deleted_at ON meals(deleted_at)`,
 		`CREATE TABLE IF NOT EXISTS meal_images(
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			meal_id INTEGER NOT NULL,
@@ -100,8 +98,13 @@ func runMigrations(db *sql.DB) error {
 	// Check if server_id column exists
 	row = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('meals') WHERE name='server_id'`)
 	if err := row.Scan(&count); err == nil && count == 0 {
-		if _, err := db.Exec(`ALTER TABLE meals ADD COLUMN server_id INTEGER UNIQUE`); err != nil {
+		// Add column without UNIQUE constraint (SQLite doesn't support adding UNIQUE columns)
+		if _, err := db.Exec(`ALTER TABLE meals ADD COLUMN server_id INTEGER`); err != nil {
 			return fmt.Errorf("failed to add server_id column: %w", err)
+		}
+		// Create unique index separately
+		if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_meals_server_id ON meals(server_id) WHERE server_id IS NOT NULL`); err != nil {
+			return fmt.Errorf("failed to create server_id index: %w", err)
 		}
 	}
 
@@ -114,6 +117,27 @@ func runMigrations(db *sql.DB) error {
 		if _, err := db.Exec(idx); err != nil {
 			return fmt.Errorf("failed to create index: %w", err)
 		}
+	}
+
+	// Create unique index for slot+date (upsert constraint)
+	// This ensures only one active meal per slot per date
+	// First, clean up any duplicates (keep the one with highest id)
+	if _, err := db.Exec(`
+		DELETE FROM meals 
+		WHERE id NOT IN (
+			SELECT MAX(id) FROM meals WHERE deleted_at IS NULL GROUP BY slot, date
+		) AND deleted_at IS NULL
+	`); err != nil {
+		// Log but don't fail - might not have duplicates
+		fmt.Printf("[WARN] Failed to clean duplicates: %v\n", err)
+	}
+	
+	if _, err := db.Exec(`
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_meals_slot_date_active 
+		ON meals(slot, date) 
+		WHERE deleted_at IS NULL
+	`); err != nil {
+		return fmt.Errorf("failed to create slot_date index: %w", err)
 	}
 
 	return nil
@@ -131,16 +155,21 @@ func (s *Storage) SaveMeal(m *models.Meal) error {
 	var result sql.Result
 	var err error
 
+	// Use upsert: insert new or update existing meal for this slot+date
 	if m.ServerID > 0 {
-		result, err = s.db.Exec(
-			"INSERT INTO meals (slot, date, description, updated_at, server_id) VALUES (?, ?, ?, ?, ?)",
-			m.Slot, m.Date, m.Description, now, m.ServerID,
-		)
+		result, err = s.db.Exec(`
+			INSERT INTO meals (slot, date, description, updated_at, server_id) 
+			VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT(slot, date) WHERE deleted_at IS NULL
+			DO UPDATE SET description = excluded.description, updated_at = excluded.updated_at
+		`, m.Slot, m.Date, m.Description, now, m.ServerID)
 	} else {
-		result, err = s.db.Exec(
-			"INSERT INTO meals (slot, date, description, updated_at) VALUES (?, ?, ?, ?)",
-			m.Slot, m.Date, m.Description, now,
-		)
+		result, err = s.db.Exec(`
+			INSERT INTO meals (slot, date, description, updated_at) 
+			VALUES (?, ?, ?, ?)
+			ON CONFLICT(slot, date) WHERE deleted_at IS NULL
+			DO UPDATE SET description = excluded.description, updated_at = excluded.updated_at
+		`, m.Slot, m.Date, m.Description, now)
 	}
 	if err != nil {
 		return err
