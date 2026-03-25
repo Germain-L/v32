@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../data/models/meal.dart';
-import '../../data/repositories/day_rating_repository.dart';
-import '../../data/repositories/meal_repository.dart';
 import '../../data/repositories/repository_factory.dart';
 import '../../gen_l10n/app_localizations.dart';
 import '../../utils/date_formatter.dart';
@@ -14,6 +12,7 @@ import '../widgets/haptic_feedback_wrapper.dart';
 import '../widgets/meal_slot.dart';
 import '../widgets/skeleton_loading.dart';
 import '../widgets/staggered_item.dart';
+import '../widgets/sync_indicator.dart';
 
 class TodayScreen extends StatefulWidget {
   final TodayProvider? provider;
@@ -128,6 +127,10 @@ class _TodayScreenState extends State<TodayScreen>
             ),
           ],
         ),
+        actions: const [
+          SyncIndicator(),
+          SizedBox(width: 8),
+        ],
       ),
       body: ListenableBuilder(
         listenable: _provider,
