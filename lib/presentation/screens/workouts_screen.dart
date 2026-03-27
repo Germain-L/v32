@@ -350,6 +350,8 @@ class _WorkoutCard extends StatelessWidget {
         return Icons.directions_run;
       case WorkoutType.cycle:
         return Icons.directions_bike;
+      case WorkoutType.badminton:
+        return Icons.sports_tennis;
       case WorkoutType.gym:
         return Icons.fitness_center;
       case WorkoutType.swim:
@@ -358,6 +360,8 @@ class _WorkoutCard extends StatelessWidget {
         return Icons.directions_walk;
       case WorkoutType.hiking:
         return Icons.hiking;
+      case WorkoutType.windsurfing:
+        return Icons.kayaking;
       case WorkoutType.other:
         return Icons.sports;
     }
@@ -467,7 +471,8 @@ class _WorkoutCard extends StatelessWidget {
                   if (workout.heartRateAvg != null)
                     _MetricChip(
                       icon: Icons.favorite_outline,
-                      label: l10n.workoutHeartRate(workout.heartRateAvg.toString()),
+                      label: l10n
+                          .workoutHeartRate(workout.heartRateAvg.toString()),
                     ),
                 ],
               ),
@@ -583,7 +588,6 @@ class _AddWorkoutSheetState extends State<_AddWorkoutSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final l10n = context.l10n;
 
     return SingleChildScrollView(
@@ -604,7 +608,7 @@ class _AddWorkoutSheetState extends State<_AddWorkoutSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Workout type
           Text(
             l10n.workoutType,
@@ -629,7 +633,7 @@ class _AddWorkoutSheetState extends State<_AddWorkoutSheet> {
             }).toList(),
           ),
           const SizedBox(height: 16),
-          
+
           // Duration
           TextField(
             controller: _durationController,
@@ -640,7 +644,7 @@ class _AddWorkoutSheetState extends State<_AddWorkoutSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Distance
           TextField(
             controller: _distanceController,
@@ -651,7 +655,7 @@ class _AddWorkoutSheetState extends State<_AddWorkoutSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Calories
           TextField(
             controller: _caloriesController,
@@ -661,7 +665,7 @@ class _AddWorkoutSheetState extends State<_AddWorkoutSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Date picker
           InkWell(
             onTap: _selectDate,
@@ -680,7 +684,7 @@ class _AddWorkoutSheetState extends State<_AddWorkoutSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Notes
           TextField(
             controller: _notesController,
@@ -691,7 +695,7 @@ class _AddWorkoutSheetState extends State<_AddWorkoutSheet> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Save button
           SizedBox(
             width: double.infinity,

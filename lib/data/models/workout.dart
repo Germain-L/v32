@@ -1,4 +1,14 @@
-enum WorkoutType { run, cycle, gym, swim, walk, hiking, other }
+enum WorkoutType {
+  run,
+  cycle,
+  badminton,
+  gym,
+  swim,
+  walk,
+  hiking,
+  windsurfing,
+  other,
+}
 
 extension WorkoutTypeExtension on WorkoutType {
   String get displayName {
@@ -6,7 +16,9 @@ extension WorkoutTypeExtension on WorkoutType {
       case WorkoutType.run:
         return 'Run';
       case WorkoutType.cycle:
-        return 'Cycle';
+        return 'Cycling';
+      case WorkoutType.badminton:
+        return 'Badminton';
       case WorkoutType.gym:
         return 'Gym';
       case WorkoutType.swim:
@@ -15,6 +27,8 @@ extension WorkoutTypeExtension on WorkoutType {
         return 'Walk';
       case WorkoutType.hiking:
         return 'Hiking';
+      case WorkoutType.windsurfing:
+        return 'Windsurfing';
       case WorkoutType.other:
         return 'Other';
     }

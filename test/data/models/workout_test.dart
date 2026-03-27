@@ -5,11 +5,13 @@ void main() {
   group('WorkoutType', () {
     test('displayName maps to labels', () {
       expect(WorkoutType.run.displayName, 'Run');
-      expect(WorkoutType.cycle.displayName, 'Cycle');
+      expect(WorkoutType.cycle.displayName, 'Cycling');
+      expect(WorkoutType.badminton.displayName, 'Badminton');
       expect(WorkoutType.gym.displayName, 'Gym');
       expect(WorkoutType.swim.displayName, 'Swim');
       expect(WorkoutType.walk.displayName, 'Walk');
       expect(WorkoutType.hiking.displayName, 'Hiking');
+      expect(WorkoutType.windsurfing.displayName, 'Windsurfing');
       expect(WorkoutType.other.displayName, 'Other');
     });
   });
@@ -165,7 +167,6 @@ void main() {
       expect(updated.stravaData, isNull);
       expect(updated.pendingSync, true);
     });
-
 
     test('pendingSync field defaults to false', () {
       final workout = Workout(
