@@ -14,6 +14,12 @@ func Auth(apiKey string, next http.Handler) http.Handler {
 			return
 		}
 
+		// Allow Strava OAuth bootstrap and callback without auth
+		if r.Method == http.MethodGet && (r.URL.Path == "/auth/strava" || r.URL.Path == "/auth/strava/callback" || r.URL.Path == "/auth/strava/success") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// Allow GET /images/* without auth (for viewing)
 		if r.Method == http.MethodGet && len(r.URL.Path) >= 7 && r.URL.Path[:7] == "/images" {
 			next.ServeHTTP(w, r)
