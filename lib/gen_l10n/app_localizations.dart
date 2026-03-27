@@ -122,6 +122,18 @@ abstract class AppLocalizations {
   /// **'Calendar'**
   String get navCalendar;
 
+  /// Bottom navigation label for the Workouts tab
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts'**
+  String get navWorkouts;
+
+  /// Bottom navigation label for the Settings tab
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
   /// Title displayed on the Today screen
   ///
   /// In en, this message translates to:
@@ -145,6 +157,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Day Details'**
   String get dayDetailTitle;
+
+  /// Title displayed on the check-in screen
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Check-in'**
+  String get checkinTitle;
+
+  /// Title displayed on the workouts screen
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts'**
+  String get workoutsTitle;
+
+  /// Title displayed on the body metrics screen
+  ///
+  /// In en, this message translates to:
+  /// **'Body Metrics'**
+  String get bodyMetricsTitle;
+
+  /// Title displayed on the screen time screen
+  ///
+  /// In en, this message translates to:
+  /// **'Screen Time'**
+  String get screenTimeTitle;
+
+  /// Title displayed on the settings screen
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
 
   /// Question asking user to rate their day
   ///
@@ -547,6 +589,618 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to load calendar data'**
   String get errorLoadCalendar;
+
+  /// Label for mood slider in check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Mood'**
+  String get checkinMood;
+
+  /// Label for energy slider in check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get checkinEnergy;
+
+  /// Label for focus slider in check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Focus'**
+  String get checkinFocus;
+
+  /// Label for stress slider in check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Stress'**
+  String get checkinStress;
+
+  /// Label for sleep section in check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get checkinSleep;
+
+  /// Label for sleep hours
+  ///
+  /// In en, this message translates to:
+  /// **'Hours'**
+  String get checkinSleepHours;
+
+  /// Display for sleep hours
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h'**
+  String checkinSleepHoursValue(String hours);
+
+  /// Label for sleep quality
+  ///
+  /// In en, this message translates to:
+  /// **'Quality'**
+  String get checkinSleepQuality;
+
+  /// Label for notes field in check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get checkinNotes;
+
+  /// Hint text for check-in notes
+  ///
+  /// In en, this message translates to:
+  /// **'How are you feeling today?'**
+  String get checkinNotesHint;
+
+  /// Button to save check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Save Check-in'**
+  String get checkinSave;
+
+  /// Confirmation message after saving check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in saved'**
+  String get checkinSaved;
+
+  /// Label for lowest value on slider
+  ///
+  /// In en, this message translates to:
+  /// **'Very Low'**
+  String get checkinVeryLow;
+
+  /// Label for low value on slider
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get checkinLow;
+
+  /// Label for medium value on slider
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get checkinMedium;
+
+  /// Label for high value on slider
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get checkinHigh;
+
+  /// Label for highest value on slider
+  ///
+  /// In en, this message translates to:
+  /// **'Very High'**
+  String get checkinVeryHigh;
+
+  /// Error message when loading check-in fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load check-in'**
+  String get errorLoadCheckin;
+
+  /// Error message when saving check-in fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save check-in'**
+  String get errorSaveCheckin;
+
+  /// Title for add workout sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Add Workout'**
+  String get workoutAdd;
+
+  /// Label for workout type
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get workoutType;
+
+  /// Label for workout duration
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get workoutDuration;
+
+  /// Unit for workout duration (minutes)
+  ///
+  /// In en, this message translates to:
+  /// **'min'**
+  String get workoutDurationUnit;
+
+  /// Label for workout distance
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get workoutDistance;
+
+  /// Unit for workout distance (meters)
+  ///
+  /// In en, this message translates to:
+  /// **'m'**
+  String get workoutDistanceUnit;
+
+  /// Label for workout calories input
+  ///
+  /// In en, this message translates to:
+  /// **'Calories'**
+  String get workoutCaloriesLabel;
+
+  /// Display for workout calories
+  ///
+  /// In en, this message translates to:
+  /// **'{cal} cal'**
+  String workoutCalories(String cal);
+
+  /// Display for workout heart rate
+  ///
+  /// In en, this message translates to:
+  /// **'{bpm} bpm'**
+  String workoutHeartRate(String bpm);
+
+  /// Label for workout date
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get workoutDate;
+
+  /// Label for workout notes
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get workoutNotes;
+
+  /// Button to save workout
+  ///
+  /// In en, this message translates to:
+  /// **'Save Workout'**
+  String get workoutSave;
+
+  /// Title for delete workout confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Workout'**
+  String get workoutDelete;
+
+  /// Confirmation message for deleting a workout
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this workout?'**
+  String get workoutDeleteConfirmation;
+
+  /// Title for empty state when no workouts exist
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts yet'**
+  String get workoutsEmpty;
+
+  /// Subtitle for empty workouts state
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first workout using the button below'**
+  String get workoutsEmptySubtitle;
+
+  /// Error message when loading workouts fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load workouts'**
+  String get errorLoadWorkouts;
+
+  /// Error message when saving workout fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save workout'**
+  String get errorSaveWorkout;
+
+  /// Error message when deleting workout fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete workout'**
+  String get errorDeleteWorkout;
+
+  /// Label for current weight display
+  ///
+  /// In en, this message translates to:
+  /// **'Current Weight'**
+  String get bodyMetricsCurrentWeight;
+
+  /// Display for weight in kilograms
+  ///
+  /// In en, this message translates to:
+  /// **'{weight} kg'**
+  String bodyMetricsWeightKg(String weight);
+
+  /// Display for body fat percentage
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% fat'**
+  String bodyMetricsBodyFat(String percent);
+
+  /// Display for weight lost
+  ///
+  /// In en, this message translates to:
+  /// **'-{kg} kg this week'**
+  String bodyMetricsWeightLost(String kg);
+
+  /// Display for weight gained
+  ///
+  /// In en, this message translates to:
+  /// **'+{kg} kg this week'**
+  String bodyMetricsWeightGained(String kg);
+
+  /// Title for add body metric sheet
+  ///
+  /// In en, this message translates to:
+  /// **'Add Measurement'**
+  String get bodyMetricAdd;
+
+  /// Label for weight input
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get bodyMetricWeightLabel;
+
+  /// Unit for weight (kilograms)
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get bodyMetricWeightUnit;
+
+  /// Label for body fat percentage input
+  ///
+  /// In en, this message translates to:
+  /// **'Body Fat %'**
+  String get bodyMetricBodyFatLabel;
+
+  /// Unit for body fat percentage
+  ///
+  /// In en, this message translates to:
+  /// **'%'**
+  String get bodyMetricBodyFatUnit;
+
+  /// Label for measurement date
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get bodyMetricDate;
+
+  /// Label for body metric notes
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get bodyMetricNotes;
+
+  /// Button to save body metric
+  ///
+  /// In en, this message translates to:
+  /// **'Save Measurement'**
+  String get bodyMetricSave;
+
+  /// Error when no value is entered
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a weight or body fat value'**
+  String get bodyMetricEnterValue;
+
+  /// Title for delete body metric confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Measurement'**
+  String get bodyMetricDelete;
+
+  /// Confirmation message for deleting a body metric
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this measurement?'**
+  String get bodyMetricDeleteConfirmation;
+
+  /// Title for empty state when no body metrics exist
+  ///
+  /// In en, this message translates to:
+  /// **'No measurements yet'**
+  String get bodyMetricsEmpty;
+
+  /// Subtitle for empty body metrics state
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first weight measurement using the button below'**
+  String get bodyMetricsEmptySubtitle;
+
+  /// Error message when loading body metrics fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load body metrics'**
+  String get errorLoadBodyMetrics;
+
+  /// Error message when saving body metric fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save body metric'**
+  String get errorSaveBodyMetric;
+
+  /// Error message when deleting body metric fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete body metric'**
+  String get errorDeleteBodyMetric;
+
+  /// Label for total screen time
+  ///
+  /// In en, this message translates to:
+  /// **'Total Screen Time'**
+  String get screenTimeTotal;
+
+  /// Display for number of pickups
+  ///
+  /// In en, this message translates to:
+  /// **'{count} pickups'**
+  String screenTimePickups(String count);
+
+  /// Section header for apps list
+  ///
+  /// In en, this message translates to:
+  /// **'Apps'**
+  String get screenTimeApps;
+
+  /// Title for empty state when no screen time data
+  ///
+  /// In en, this message translates to:
+  /// **'No screen time data'**
+  String get screenTimeNoData;
+
+  /// Subtitle for empty screen time state
+  ///
+  /// In en, this message translates to:
+  /// **'Screen time data will appear here once tracking is enabled'**
+  String get screenTimeNoDataSubtitle;
+
+  /// Error message when loading screen time fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load screen time'**
+  String get errorLoadScreenTime;
+
+  /// Title for hydration widget
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration'**
+  String get hydrationTitle;
+
+  /// Display for total hydration
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} ml'**
+  String hydrationTotal(String amount);
+
+  /// Button to add 250ml of water
+  ///
+  /// In en, this message translates to:
+  /// **'+250ml'**
+  String get hydrationAdd250ml;
+
+  /// Button to add 500ml of water
+  ///
+  /// In en, this message translates to:
+  /// **'+500ml'**
+  String get hydrationAdd500ml;
+
+  /// Label for recent hydration entries
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get hydrationRecent;
+
+  /// Section header for connected services
+  ///
+  /// In en, this message translates to:
+  /// **'Connections'**
+  String get settingsConnections;
+
+  /// Strava connection setting
+  ///
+  /// In en, this message translates to:
+  /// **'Strava'**
+  String get settingsStrava;
+
+  /// Label when a service is connected
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get settingsConnected;
+
+  /// Label when a service is not connected
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected'**
+  String get settingsNotConnected;
+
+  /// Title for disconnect Strava confirmation
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect Strava'**
+  String get settingsStravaDisconnect;
+
+  /// Confirmation message for disconnecting Strava
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to disconnect your Strava account?'**
+  String get settingsStravaDisconnectConfirm;
+
+  /// Button to disconnect a service
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect'**
+  String get settingsDisconnect;
+
+  /// Message when Strava is disconnected
+  ///
+  /// In en, this message translates to:
+  /// **'Strava disconnected'**
+  String get settingsStravaDisconnected;
+
+  /// Message when Strava is connected
+  ///
+  /// In en, this message translates to:
+  /// **'Strava connected successfully'**
+  String get settingsStravaConnected;
+
+  /// Message when Strava feature is not yet available
+  ///
+  /// In en, this message translates to:
+  /// **'Strava integration coming soon'**
+  String get settingsStravaComingSoon;
+
+  /// Section header for tracking settings
+  ///
+  /// In en, this message translates to:
+  /// **'Tracking'**
+  String get settingsTracking;
+
+  /// Screen time monitoring toggle setting
+  ///
+  /// In en, this message translates to:
+  /// **'Screen Time Monitoring'**
+  String get settingsScreenTime;
+
+  /// Description for screen time setting
+  ///
+  /// In en, this message translates to:
+  /// **'Track your daily phone usage'**
+  String get settingsScreenTimeDescription;
+
+  /// Section header for sync settings
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get settingsSync;
+
+  /// Label for sync status
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Status'**
+  String get settingsSyncStatus;
+
+  /// Label when data is synced
+  ///
+  /// In en, this message translates to:
+  /// **'Synced'**
+  String get settingsSynced;
+
+  /// Display for last sync time
+  ///
+  /// In en, this message translates to:
+  /// **'Last synced: {time}'**
+  String settingsLastSync(String time);
+
+  /// Section header for about information
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAbout;
+
+  /// Label for app version
+  ///
+  /// In en, this message translates to:
+  /// **'App Version'**
+  String get settingsAppVersion;
+
+  /// Label for technology used
+  ///
+  /// In en, this message translates to:
+  /// **'Built With'**
+  String get settingsBuiltWith;
+
+  /// Label for app creator
+  ///
+  /// In en, this message translates to:
+  /// **'Made By'**
+  String get settingsMadeBy;
+
+  /// Section title for today's workouts on dashboard
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Workouts'**
+  String get todaySectionWorkouts;
+
+  /// Message when no workouts logged today
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts today'**
+  String get todaySectionWorkoutsEmpty;
+
+  /// Button to add workout from today screen
+  ///
+  /// In en, this message translates to:
+  /// **'Add Workout'**
+  String get todaySectionWorkoutsAdd;
+
+  /// Section title for hydration on dashboard
+  ///
+  /// In en, this message translates to:
+  /// **'Hydration'**
+  String get todaySectionHydration;
+
+  /// Section title for body metrics on dashboard
+  ///
+  /// In en, this message translates to:
+  /// **'Body Metrics'**
+  String get todaySectionBodyMetrics;
+
+  /// Message when no body metrics available
+  ///
+  /// In en, this message translates to:
+  /// **'No recent measurements'**
+  String get todaySectionBodyMetricsEmpty;
+
+  /// Section title for check-in on dashboard
+  ///
+  /// In en, this message translates to:
+  /// **'Daily Check-in'**
+  String get todaySectionCheckin;
+
+  /// Quick check-in button for mood
+  ///
+  /// In en, this message translates to:
+  /// **'Mood'**
+  String get todayCheckinMood;
+
+  /// Quick check-in button for energy
+  ///
+  /// In en, this message translates to:
+  /// **'Energy'**
+  String get todayCheckinEnergy;
+
+  /// Button to complete full check-in
+  ///
+  /// In en, this message translates to:
+  /// **'Complete Check-in'**
+  String get todayCheckinComplete;
+
+  /// Label for quick add buttons
+  ///
+  /// In en, this message translates to:
+  /// **'Quick Add'**
+  String get todayQuickAdd;
 }
 
 class _AppLocalizationsDelegate

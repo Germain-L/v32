@@ -4,6 +4,11 @@ import '../presentation/screens/today_screen.dart';
 import '../presentation/screens/meals_screen.dart';
 import '../presentation/screens/calendar_screen.dart';
 import '../presentation/screens/day_detail_screen.dart';
+import '../presentation/screens/checkin_screen.dart';
+import '../presentation/screens/workouts_screen.dart';
+import '../presentation/screens/body_metrics_screen.dart';
+import '../presentation/screens/screen_time_screen.dart';
+import '../presentation/screens/settings_screen.dart';
 import '../presentation/widgets/haptic_feedback_wrapper.dart';
 import '../utils/l10n_helper.dart';
 
@@ -49,8 +54,16 @@ final router = GoRouter(
           builder: (context, state) => const MealsScreen(),
         ),
         GoRoute(
+          path: '/workouts',
+          builder: (context, state) => const WorkoutsScreen(),
+        ),
+        GoRoute(
           path: '/calendar',
           builder: (context, state) => const CalendarScreen(),
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
         ),
       ],
     ),
@@ -62,6 +75,18 @@ final router = GoRouter(
           initialDate: _parseDateParam(dateParam) ?? DateTime.now(),
         );
       },
+    ),
+    GoRoute(
+      path: '/checkin',
+      builder: (context, state) => const CheckinScreen(),
+    ),
+    GoRoute(
+      path: '/body-metrics',
+      builder: (context, state) => const BodyMetricsScreen(),
+    ),
+    GoRoute(
+      path: '/screen-time',
+      builder: (context, state) => const ScreenTimeScreen(),
     ),
   ],
 );
@@ -103,9 +128,19 @@ class MainScaffold extends StatelessWidget {
             label: context.l10n.navMeals,
           ),
           NavigationDestination(
+            icon: const Icon(Icons.fitness_center_outlined),
+            selectedIcon: const Icon(Icons.fitness_center),
+            label: context.l10n.navWorkouts,
+          ),
+          NavigationDestination(
             icon: const Icon(Icons.calendar_month_outlined),
             selectedIcon: const Icon(Icons.calendar_month),
             label: context.l10n.navCalendar,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: context.l10n.navSettings,
           ),
         ],
       ),
@@ -114,7 +149,9 @@ class MainScaffold extends StatelessWidget {
 
   int _calculateSelectedIndex(String location) {
     if (location.startsWith('/meals')) return 1;
-    if (location.startsWith('/calendar')) return 2;
+    if (location.startsWith('/workouts')) return 2;
+    if (location.startsWith('/calendar')) return 3;
+    if (location.startsWith('/settings')) return 4;
     return 0;
   }
 
@@ -128,7 +165,13 @@ class MainScaffold extends StatelessWidget {
         context.go('/meals');
         break;
       case 2:
+        context.go('/workouts');
+        break;
+      case 3:
         context.go('/calendar');
+        break;
+      case 4:
+        context.go('/settings');
         break;
     }
   }

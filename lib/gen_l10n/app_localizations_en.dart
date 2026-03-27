@@ -21,6 +21,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navCalendar => 'Calendar';
 
   @override
+  String get navWorkouts => 'Workouts';
+
+  @override
+  String get navSettings => 'Settings';
+
+  @override
   String get todayTitle => 'Today\'s Meals';
 
   @override
@@ -31,6 +37,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dayDetailTitle => 'Day Details';
+
+  @override
+  String get checkinTitle => 'Daily Check-in';
+
+  @override
+  String get workoutsTitle => 'Workouts';
+
+  @override
+  String get bodyMetricsTitle => 'Body Metrics';
+
+  @override
+  String get screenTimeTitle => 'Screen Time';
+
+  @override
+  String get settingsTitle => 'Settings';
 
   @override
   String get howWasYourDay => 'How was your day?';
@@ -240,4 +261,336 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorLoadCalendar => 'Failed to load calendar data';
+
+  @override
+  String get checkinMood => 'Mood';
+
+  @override
+  String get checkinEnergy => 'Energy';
+
+  @override
+  String get checkinFocus => 'Focus';
+
+  @override
+  String get checkinStress => 'Stress';
+
+  @override
+  String get checkinSleep => 'Sleep';
+
+  @override
+  String get checkinSleepHours => 'Hours';
+
+  @override
+  String checkinSleepHoursValue(String hours) {
+    return '${hours}h';
+  }
+
+  @override
+  String get checkinSleepQuality => 'Quality';
+
+  @override
+  String get checkinNotes => 'Notes';
+
+  @override
+  String get checkinNotesHint => 'How are you feeling today?';
+
+  @override
+  String get checkinSave => 'Save Check-in';
+
+  @override
+  String get checkinSaved => 'Check-in saved';
+
+  @override
+  String get checkinVeryLow => 'Very Low';
+
+  @override
+  String get checkinLow => 'Low';
+
+  @override
+  String get checkinMedium => 'Medium';
+
+  @override
+  String get checkinHigh => 'High';
+
+  @override
+  String get checkinVeryHigh => 'Very High';
+
+  @override
+  String get errorLoadCheckin => 'Failed to load check-in';
+
+  @override
+  String get errorSaveCheckin => 'Failed to save check-in';
+
+  @override
+  String get workoutAdd => 'Add Workout';
+
+  @override
+  String get workoutType => 'Type';
+
+  @override
+  String get workoutDuration => 'Duration';
+
+  @override
+  String get workoutDurationUnit => 'min';
+
+  @override
+  String get workoutDistance => 'Distance';
+
+  @override
+  String get workoutDistanceUnit => 'm';
+
+  @override
+  String get workoutCaloriesLabel => 'Calories';
+
+  @override
+  String workoutCalories(String cal) {
+    return '$cal cal';
+  }
+
+  @override
+  String workoutHeartRate(String bpm) {
+    return '$bpm bpm';
+  }
+
+  @override
+  String get workoutDate => 'Date';
+
+  @override
+  String get workoutNotes => 'Notes';
+
+  @override
+  String get workoutSave => 'Save Workout';
+
+  @override
+  String get workoutDelete => 'Delete Workout';
+
+  @override
+  String get workoutDeleteConfirmation =>
+      'Are you sure you want to delete this workout?';
+
+  @override
+  String get workoutsEmpty => 'No workouts yet';
+
+  @override
+  String get workoutsEmptySubtitle =>
+      'Add your first workout using the button below';
+
+  @override
+  String get errorLoadWorkouts => 'Failed to load workouts';
+
+  @override
+  String get errorSaveWorkout => 'Failed to save workout';
+
+  @override
+  String get errorDeleteWorkout => 'Failed to delete workout';
+
+  @override
+  String get bodyMetricsCurrentWeight => 'Current Weight';
+
+  @override
+  String bodyMetricsWeightKg(String weight) {
+    return '$weight kg';
+  }
+
+  @override
+  String bodyMetricsBodyFat(String percent) {
+    return '$percent% fat';
+  }
+
+  @override
+  String bodyMetricsWeightLost(String kg) {
+    return '-$kg kg this week';
+  }
+
+  @override
+  String bodyMetricsWeightGained(String kg) {
+    return '+$kg kg this week';
+  }
+
+  @override
+  String get bodyMetricAdd => 'Add Measurement';
+
+  @override
+  String get bodyMetricWeightLabel => 'Weight';
+
+  @override
+  String get bodyMetricWeightUnit => 'kg';
+
+  @override
+  String get bodyMetricBodyFatLabel => 'Body Fat %';
+
+  @override
+  String get bodyMetricBodyFatUnit => '%';
+
+  @override
+  String get bodyMetricDate => 'Date';
+
+  @override
+  String get bodyMetricNotes => 'Notes';
+
+  @override
+  String get bodyMetricSave => 'Save Measurement';
+
+  @override
+  String get bodyMetricEnterValue => 'Please enter a weight or body fat value';
+
+  @override
+  String get bodyMetricDelete => 'Delete Measurement';
+
+  @override
+  String get bodyMetricDeleteConfirmation =>
+      'Are you sure you want to delete this measurement?';
+
+  @override
+  String get bodyMetricsEmpty => 'No measurements yet';
+
+  @override
+  String get bodyMetricsEmptySubtitle =>
+      'Add your first weight measurement using the button below';
+
+  @override
+  String get errorLoadBodyMetrics => 'Failed to load body metrics';
+
+  @override
+  String get errorSaveBodyMetric => 'Failed to save body metric';
+
+  @override
+  String get errorDeleteBodyMetric => 'Failed to delete body metric';
+
+  @override
+  String get screenTimeTotal => 'Total Screen Time';
+
+  @override
+  String screenTimePickups(String count) {
+    return '$count pickups';
+  }
+
+  @override
+  String get screenTimeApps => 'Apps';
+
+  @override
+  String get screenTimeNoData => 'No screen time data';
+
+  @override
+  String get screenTimeNoDataSubtitle =>
+      'Screen time data will appear here once tracking is enabled';
+
+  @override
+  String get errorLoadScreenTime => 'Failed to load screen time';
+
+  @override
+  String get hydrationTitle => 'Hydration';
+
+  @override
+  String hydrationTotal(String amount) {
+    return '$amount ml';
+  }
+
+  @override
+  String get hydrationAdd250ml => '+250ml';
+
+  @override
+  String get hydrationAdd500ml => '+500ml';
+
+  @override
+  String get hydrationRecent => 'Recent';
+
+  @override
+  String get settingsConnections => 'Connections';
+
+  @override
+  String get settingsStrava => 'Strava';
+
+  @override
+  String get settingsConnected => 'Connected';
+
+  @override
+  String get settingsNotConnected => 'Not connected';
+
+  @override
+  String get settingsStravaDisconnect => 'Disconnect Strava';
+
+  @override
+  String get settingsStravaDisconnectConfirm =>
+      'Are you sure you want to disconnect your Strava account?';
+
+  @override
+  String get settingsDisconnect => 'Disconnect';
+
+  @override
+  String get settingsStravaDisconnected => 'Strava disconnected';
+
+  @override
+  String get settingsStravaConnected => 'Strava connected successfully';
+
+  @override
+  String get settingsStravaComingSoon => 'Strava integration coming soon';
+
+  @override
+  String get settingsTracking => 'Tracking';
+
+  @override
+  String get settingsScreenTime => 'Screen Time Monitoring';
+
+  @override
+  String get settingsScreenTimeDescription => 'Track your daily phone usage';
+
+  @override
+  String get settingsSync => 'Sync';
+
+  @override
+  String get settingsSyncStatus => 'Sync Status';
+
+  @override
+  String get settingsSynced => 'Synced';
+
+  @override
+  String settingsLastSync(String time) {
+    return 'Last synced: $time';
+  }
+
+  @override
+  String get settingsAbout => 'About';
+
+  @override
+  String get settingsAppVersion => 'App Version';
+
+  @override
+  String get settingsBuiltWith => 'Built With';
+
+  @override
+  String get settingsMadeBy => 'Made By';
+
+  @override
+  String get todaySectionWorkouts => 'Today\'s Workouts';
+
+  @override
+  String get todaySectionWorkoutsEmpty => 'No workouts today';
+
+  @override
+  String get todaySectionWorkoutsAdd => 'Add Workout';
+
+  @override
+  String get todaySectionHydration => 'Hydration';
+
+  @override
+  String get todaySectionBodyMetrics => 'Body Metrics';
+
+  @override
+  String get todaySectionBodyMetricsEmpty => 'No recent measurements';
+
+  @override
+  String get todaySectionCheckin => 'Daily Check-in';
+
+  @override
+  String get todayCheckinMood => 'Mood';
+
+  @override
+  String get todayCheckinEnergy => 'Energy';
+
+  @override
+  String get todayCheckinComplete => 'Complete Check-in';
+
+  @override
+  String get todayQuickAdd => 'Quick Add';
 }

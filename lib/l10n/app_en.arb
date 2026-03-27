@@ -21,6 +21,16 @@
     "description": "Bottom navigation label for the Calendar tab"
   },
   
+  "navWorkouts": "Workouts",
+  "@navWorkouts": {
+    "description": "Bottom navigation label for the Workouts tab"
+  },
+  
+  "navSettings": "Settings",
+  "@navSettings": {
+    "description": "Bottom navigation label for the Settings tab"
+  },
+  
   "todayTitle": "Today's Meals",
   "@todayTitle": {
     "description": "Title displayed on the Today screen"
@@ -39,6 +49,31 @@
   "dayDetailTitle": "Day Details",
   "@dayDetailTitle": {
     "description": "Title displayed on the day detail screen"
+  },
+  
+  "checkinTitle": "Daily Check-in",
+  "@checkinTitle": {
+    "description": "Title displayed on the check-in screen"
+  },
+  
+  "workoutsTitle": "Workouts",
+  "@workoutsTitle": {
+    "description": "Title displayed on the workouts screen"
+  },
+  
+  "bodyMetricsTitle": "Body Metrics",
+  "@bodyMetricsTitle": {
+    "description": "Title displayed on the body metrics screen"
+  },
+  
+  "screenTimeTitle": "Screen Time",
+  "@screenTimeTitle": {
+    "description": "Title displayed on the screen time screen"
+  },
+  
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Title displayed on the settings screen"
   },
   
   "howWasYourDay": "How was your day?",
@@ -398,5 +433,575 @@
   "errorLoadCalendar": "Failed to load calendar data",
   "@errorLoadCalendar": {
     "description": "Error message when loading calendar data fails"
+  },
+  
+  "checkinMood": "Mood",
+  "@checkinMood": {
+    "description": "Label for mood slider in check-in"
+  },
+  
+  "checkinEnergy": "Energy",
+  "@checkinEnergy": {
+    "description": "Label for energy slider in check-in"
+  },
+  
+  "checkinFocus": "Focus",
+  "@checkinFocus": {
+    "description": "Label for focus slider in check-in"
+  },
+  
+  "checkinStress": "Stress",
+  "@checkinStress": {
+    "description": "Label for stress slider in check-in"
+  },
+  
+  "checkinSleep": "Sleep",
+  "@checkinSleep": {
+    "description": "Label for sleep section in check-in"
+  },
+  
+  "checkinSleepHours": "Hours",
+  "@checkinSleepHours": {
+    "description": "Label for sleep hours"
+  },
+  
+  "checkinSleepHoursValue": "{hours}h",
+  "@checkinSleepHoursValue": {
+    "description": "Display for sleep hours",
+    "placeholders": {
+      "hours": {
+        "type": "String",
+        "example": "7.5"
+      }
+    }
+  },
+  
+  "checkinSleepQuality": "Quality",
+  "@checkinSleepQuality": {
+    "description": "Label for sleep quality"
+  },
+  
+  "checkinNotes": "Notes",
+  "@checkinNotes": {
+    "description": "Label for notes field in check-in"
+  },
+  
+  "checkinNotesHint": "How are you feeling today?",
+  "@checkinNotesHint": {
+    "description": "Hint text for check-in notes"
+  },
+  
+  "checkinSave": "Save Check-in",
+  "@checkinSave": {
+    "description": "Button to save check-in"
+  },
+  
+  "checkinSaved": "Check-in saved",
+  "@checkinSaved": {
+    "description": "Confirmation message after saving check-in"
+  },
+  
+  "checkinVeryLow": "Very Low",
+  "@checkinVeryLow": {
+    "description": "Label for lowest value on slider"
+  },
+  
+  "checkinLow": "Low",
+  "@checkinLow": {
+    "description": "Label for low value on slider"
+  },
+  
+  "checkinMedium": "Medium",
+  "@checkinMedium": {
+    "description": "Label for medium value on slider"
+  },
+  
+  "checkinHigh": "High",
+  "@checkinHigh": {
+    "description": "Label for high value on slider"
+  },
+  
+  "checkinVeryHigh": "Very High",
+  "@checkinVeryHigh": {
+    "description": "Label for highest value on slider"
+  },
+  
+  "errorLoadCheckin": "Failed to load check-in",
+  "@errorLoadCheckin": {
+    "description": "Error message when loading check-in fails"
+  },
+  
+  "errorSaveCheckin": "Failed to save check-in",
+  "@errorSaveCheckin": {
+    "description": "Error message when saving check-in fails"
+  },
+  
+  "workoutAdd": "Add Workout",
+  "@workoutAdd": {
+    "description": "Title for add workout sheet"
+  },
+  
+  "workoutType": "Type",
+  "@workoutType": {
+    "description": "Label for workout type"
+  },
+  
+  "workoutDuration": "Duration",
+  "@workoutDuration": {
+    "description": "Label for workout duration"
+  },
+  
+  "workoutDurationUnit": "min",
+  "@workoutDurationUnit": {
+    "description": "Unit for workout duration (minutes)"
+  },
+  
+  "workoutDistance": "Distance",
+  "@workoutDistance": {
+    "description": "Label for workout distance"
+  },
+  
+  "workoutDistanceUnit": "m",
+  "@workoutDistanceUnit": {
+    "description": "Unit for workout distance (meters)"
+  },
+  
+  "workoutCaloriesLabel": "Calories",
+  "@workoutCaloriesLabel": {
+    "description": "Label for workout calories input"
+  },
+  
+  "workoutCalories": "{cal} cal",
+  "@workoutCalories": {
+    "description": "Display for workout calories",
+    "placeholders": {
+      "cal": {
+        "type": "String",
+        "example": "450"
+      }
+    }
+  },
+  
+  "workoutHeartRate": "{bpm} bpm",
+  "@workoutHeartRate": {
+    "description": "Display for workout heart rate",
+    "placeholders": {
+      "bpm": {
+        "type": "String",
+        "example": "145"
+      }
+    }
+  },
+  
+  "workoutDate": "Date",
+  "@workoutDate": {
+    "description": "Label for workout date"
+  },
+  
+  "workoutNotes": "Notes",
+  "@workoutNotes": {
+    "description": "Label for workout notes"
+  },
+  
+  "workoutSave": "Save Workout",
+  "@workoutSave": {
+    "description": "Button to save workout"
+  },
+  
+  "workoutDelete": "Delete Workout",
+  "@workoutDelete": {
+    "description": "Title for delete workout confirmation"
+  },
+  
+  "workoutDeleteConfirmation": "Are you sure you want to delete this workout?",
+  "@workoutDeleteConfirmation": {
+    "description": "Confirmation message for deleting a workout"
+  },
+  
+  "workoutsEmpty": "No workouts yet",
+  "@workoutsEmpty": {
+    "description": "Title for empty state when no workouts exist"
+  },
+  
+  "workoutsEmptySubtitle": "Add your first workout using the button below",
+  "@workoutsEmptySubtitle": {
+    "description": "Subtitle for empty workouts state"
+  },
+  
+  "errorLoadWorkouts": "Failed to load workouts",
+  "@errorLoadWorkouts": {
+    "description": "Error message when loading workouts fails"
+  },
+  
+  "errorSaveWorkout": "Failed to save workout",
+  "@errorSaveWorkout": {
+    "description": "Error message when saving workout fails"
+  },
+  
+  "errorDeleteWorkout": "Failed to delete workout",
+  "@errorDeleteWorkout": {
+    "description": "Error message when deleting workout fails"
+  },
+  
+  "bodyMetricsCurrentWeight": "Current Weight",
+  "@bodyMetricsCurrentWeight": {
+    "description": "Label for current weight display"
+  },
+  
+  "bodyMetricsWeightKg": "{weight} kg",
+  "@bodyMetricsWeightKg": {
+    "description": "Display for weight in kilograms",
+    "placeholders": {
+      "weight": {
+        "type": "String",
+        "example": "70.5"
+      }
+    }
+  },
+  
+  "bodyMetricsBodyFat": "{percent}% fat",
+  "@bodyMetricsBodyFat": {
+    "description": "Display for body fat percentage",
+    "placeholders": {
+      "percent": {
+        "type": "String",
+        "example": "15.5"
+      }
+    }
+  },
+  
+  "bodyMetricsWeightLost": "-{kg} kg this week",
+  "@bodyMetricsWeightLost": {
+    "description": "Display for weight lost",
+    "placeholders": {
+      "kg": {
+        "type": "String",
+        "example": "0.5"
+      }
+    }
+  },
+  
+  "bodyMetricsWeightGained": "+{kg} kg this week",
+  "@bodyMetricsWeightGained": {
+    "description": "Display for weight gained",
+    "placeholders": {
+      "kg": {
+        "type": "String",
+        "example": "0.5"
+      }
+    }
+  },
+  
+  "bodyMetricAdd": "Add Measurement",
+  "@bodyMetricAdd": {
+    "description": "Title for add body metric sheet"
+  },
+  
+  "bodyMetricWeightLabel": "Weight",
+  "@bodyMetricWeightLabel": {
+    "description": "Label for weight input"
+  },
+  
+  "bodyMetricWeightUnit": "kg",
+  "@bodyMetricWeightUnit": {
+    "description": "Unit for weight (kilograms)"
+  },
+  
+  "bodyMetricBodyFatLabel": "Body Fat %",
+  "@bodyMetricBodyFatLabel": {
+    "description": "Label for body fat percentage input"
+  },
+  
+  "bodyMetricBodyFatUnit": "%",
+  "@bodyMetricBodyFatUnit": {
+    "description": "Unit for body fat percentage"
+  },
+  
+  "bodyMetricDate": "Date",
+  "@bodyMetricDate": {
+    "description": "Label for measurement date"
+  },
+  
+  "bodyMetricNotes": "Notes",
+  "@bodyMetricNotes": {
+    "description": "Label for body metric notes"
+  },
+  
+  "bodyMetricSave": "Save Measurement",
+  "@bodyMetricSave": {
+    "description": "Button to save body metric"
+  },
+  
+  "bodyMetricEnterValue": "Please enter a weight or body fat value",
+  "@bodyMetricEnterValue": {
+    "description": "Error when no value is entered"
+  },
+  
+  "bodyMetricDelete": "Delete Measurement",
+  "@bodyMetricDelete": {
+    "description": "Title for delete body metric confirmation"
+  },
+  
+  "bodyMetricDeleteConfirmation": "Are you sure you want to delete this measurement?",
+  "@bodyMetricDeleteConfirmation": {
+    "description": "Confirmation message for deleting a body metric"
+  },
+  
+  "bodyMetricsEmpty": "No measurements yet",
+  "@bodyMetricsEmpty": {
+    "description": "Title for empty state when no body metrics exist"
+  },
+  
+  "bodyMetricsEmptySubtitle": "Add your first weight measurement using the button below",
+  "@bodyMetricsEmptySubtitle": {
+    "description": "Subtitle for empty body metrics state"
+  },
+  
+  "errorLoadBodyMetrics": "Failed to load body metrics",
+  "@errorLoadBodyMetrics": {
+    "description": "Error message when loading body metrics fails"
+  },
+  
+  "errorSaveBodyMetric": "Failed to save body metric",
+  "@errorSaveBodyMetric": {
+    "description": "Error message when saving body metric fails"
+  },
+  
+  "errorDeleteBodyMetric": "Failed to delete body metric",
+  "@errorDeleteBodyMetric": {
+    "description": "Error message when deleting body metric fails"
+  },
+  
+  "screenTimeTotal": "Total Screen Time",
+  "@screenTimeTotal": {
+    "description": "Label for total screen time"
+  },
+  
+  "screenTimePickups": "{count} pickups",
+  "@screenTimePickups": {
+    "description": "Display for number of pickups",
+    "placeholders": {
+      "count": {
+        "type": "String",
+        "example": "42"
+      }
+    }
+  },
+  
+  "screenTimeApps": "Apps",
+  "@screenTimeApps": {
+    "description": "Section header for apps list"
+  },
+  
+  "screenTimeNoData": "No screen time data",
+  "@screenTimeNoData": {
+    "description": "Title for empty state when no screen time data"
+  },
+  
+  "screenTimeNoDataSubtitle": "Screen time data will appear here once tracking is enabled",
+  "@screenTimeNoDataSubtitle": {
+    "description": "Subtitle for empty screen time state"
+  },
+  
+  "errorLoadScreenTime": "Failed to load screen time",
+  "@errorLoadScreenTime": {
+    "description": "Error message when loading screen time fails"
+  },
+  
+  "hydrationTitle": "Hydration",
+  "@hydrationTitle": {
+    "description": "Title for hydration widget"
+  },
+  
+  "hydrationTotal": "{amount} ml",
+  "@hydrationTotal": {
+    "description": "Display for total hydration",
+    "placeholders": {
+      "amount": {
+        "type": "String",
+        "example": "1500"
+      }
+    }
+  },
+  
+  "hydrationAdd250ml": "+250ml",
+  "@hydrationAdd250ml": {
+    "description": "Button to add 250ml of water"
+  },
+  
+  "hydrationAdd500ml": "+500ml",
+  "@hydrationAdd500ml": {
+    "description": "Button to add 500ml of water"
+  },
+  
+  "hydrationRecent": "Recent",
+  "@hydrationRecent": {
+    "description": "Label for recent hydration entries"
+  },
+  
+  "settingsConnections": "Connections",
+  "@settingsConnections": {
+    "description": "Section header for connected services"
+  },
+  
+  "settingsStrava": "Strava",
+  "@settingsStrava": {
+    "description": "Strava connection setting"
+  },
+  
+  "settingsConnected": "Connected",
+  "@settingsConnected": {
+    "description": "Label when a service is connected"
+  },
+  
+  "settingsNotConnected": "Not connected",
+  "@settingsNotConnected": {
+    "description": "Label when a service is not connected"
+  },
+  
+  "settingsStravaDisconnect": "Disconnect Strava",
+  "@settingsStravaDisconnect": {
+    "description": "Title for disconnect Strava confirmation"
+  },
+  
+  "settingsStravaDisconnectConfirm": "Are you sure you want to disconnect your Strava account?",
+  "@settingsStravaDisconnectConfirm": {
+    "description": "Confirmation message for disconnecting Strava"
+  },
+  
+  "settingsDisconnect": "Disconnect",
+  "@settingsDisconnect": {
+    "description": "Button to disconnect a service"
+  },
+  
+  "settingsStravaDisconnected": "Strava disconnected",
+  "@settingsStravaDisconnected": {
+    "description": "Message when Strava is disconnected"
+  },
+  
+  "settingsStravaConnected": "Strava connected successfully",
+  "@settingsStravaConnected": {
+    "description": "Message when Strava is connected"
+  },
+  
+  "settingsStravaComingSoon": "Strava integration coming soon",
+  "@settingsStravaComingSoon": {
+    "description": "Message when Strava feature is not yet available"
+  },
+  
+  "settingsTracking": "Tracking",
+  "@settingsTracking": {
+    "description": "Section header for tracking settings"
+  },
+  
+  "settingsScreenTime": "Screen Time Monitoring",
+  "@settingsScreenTime": {
+    "description": "Screen time monitoring toggle setting"
+  },
+  
+  "settingsScreenTimeDescription": "Track your daily phone usage",
+  "@settingsScreenTimeDescription": {
+    "description": "Description for screen time setting"
+  },
+  
+  "settingsSync": "Sync",
+  "@settingsSync": {
+    "description": "Section header for sync settings"
+  },
+  
+  "settingsSyncStatus": "Sync Status",
+  "@settingsSyncStatus": {
+    "description": "Label for sync status"
+  },
+  
+  "settingsSynced": "Synced",
+  "@settingsSynced": {
+    "description": "Label when data is synced"
+  },
+  
+  "settingsLastSync": "Last synced: {time}",
+  "@settingsLastSync": {
+    "description": "Display for last sync time",
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2 minutes ago"
+      }
+    }
+  },
+  
+  "settingsAbout": "About",
+  "@settingsAbout": {
+    "description": "Section header for about information"
+  },
+  
+  "settingsAppVersion": "App Version",
+  "@settingsAppVersion": {
+    "description": "Label for app version"
+  },
+  
+  "settingsBuiltWith": "Built With",
+  "@settingsBuiltWith": {
+    "description": "Label for technology used"
+  },
+  
+  "settingsMadeBy": "Made By",
+  "@settingsMadeBy": {
+    "description": "Label for app creator"
+  },
+  
+  "todaySectionWorkouts": "Today's Workouts",
+  "@todaySectionWorkouts": {
+    "description": "Section title for today's workouts on dashboard"
+  },
+  
+  "todaySectionWorkoutsEmpty": "No workouts today",
+  "@todaySectionWorkoutsEmpty": {
+    "description": "Message when no workouts logged today"
+  },
+  
+  "todaySectionWorkoutsAdd": "Add Workout",
+  "@todaySectionWorkoutsAdd": {
+    "description": "Button to add workout from today screen"
+  },
+  
+  "todaySectionHydration": "Hydration",
+  "@todaySectionHydration": {
+    "description": "Section title for hydration on dashboard"
+  },
+  
+  "todaySectionBodyMetrics": "Body Metrics",
+  "@todaySectionBodyMetrics": {
+    "description": "Section title for body metrics on dashboard"
+  },
+  
+  "todaySectionBodyMetricsEmpty": "No recent measurements",
+  "@todaySectionBodyMetricsEmpty": {
+    "description": "Message when no body metrics available"
+  },
+  
+  "todaySectionCheckin": "Daily Check-in",
+  "@todaySectionCheckin": {
+    "description": "Section title for check-in on dashboard"
+  },
+  
+  "todayCheckinMood": "Mood",
+  "@todayCheckinMood": {
+    "description": "Quick check-in button for mood"
+  },
+  
+  "todayCheckinEnergy": "Energy",
+  "@todayCheckinEnergy": {
+    "description": "Quick check-in button for energy"
+  },
+  
+  "todayCheckinComplete": "Complete Check-in",
+  "@todayCheckinComplete": {
+    "description": "Button to complete full check-in"
+  },
+  
+  "todayQuickAdd": "Quick Add",
+  "@todayQuickAdd": {
+    "description": "Label for quick add buttons"
   }
 }
