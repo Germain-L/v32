@@ -903,6 +903,36 @@
   "@settingsScreenTimeDescription": {
     "description": "Description for screen time setting"
   },
+
+  "settingsScreenTimePermissionTitle": "Screen time access",
+  "@settingsScreenTimePermissionTitle": {
+    "description": "Dialog title shown before opening Android usage access settings"
+  },
+
+  "settingsScreenTimePermissionMessage": "To track your screen time, v32 needs access to your app usage data. You'll be redirected to Android settings to grant this permission.",
+  "@settingsScreenTimePermissionMessage": {
+    "description": "Dialog message explaining the Android usage access permission"
+  },
+
+  "settingsScreenTimeOpenSettings": "Open Settings",
+  "@settingsScreenTimeOpenSettings": {
+    "description": "Button label that opens Android usage access settings"
+  },
+
+  "settingsScreenTimePermissionGranted": "Screen time access enabled",
+  "@settingsScreenTimePermissionGranted": {
+    "description": "Snackbar shown when Android usage access permission has been granted"
+  },
+
+  "settingsScreenTimeOpen": "Open screen time",
+  "@settingsScreenTimeOpen": {
+    "description": "Settings row label that opens the screen time screen"
+  },
+
+  "settingsScreenTimeOpenDescription": "View today's screen time breakdown",
+  "@settingsScreenTimeOpenDescription": {
+    "description": "Settings row subtitle that opens the screen time screen"
+  },
   
   "settingsSync": "Sync",
   "@settingsSync": {

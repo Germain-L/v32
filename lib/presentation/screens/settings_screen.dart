@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../data/services/screen_time_service.dart';
+import '../../data/services/screen_time_settings_service.dart';
 import '../../data/services/strava_auth_service.dart';
-import '../../data/services/sync_status_provider.dart';
-import '../../gen_l10n/app_localizations.dart';
 import '../../utils/l10n_helper.dart';
 import '../widgets/haptic_feedback_wrapper.dart';
 
@@ -12,9 +13,36 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with WidgetsBindingObserver {
+  final ScreenTimeService _screenTimeService = ScreenTimeService();
+  final ScreenTimeSettingsService _screenTimeSettingsService =
+      ScreenTimeSettingsService();
+
   bool _stravaConnected = false;
-  bool _screenTimeEnabled = true;
+  bool _screenTimeEnabled = false;
+  bool _isScreenTimeLoading = true;
+  bool _awaitingScreenTimePermission = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadScreenTimePreference();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _awaitingScreenTimePermission) {
+      _handleScreenTimePermissionReturn();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,9 +77,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Tracking section
           _SectionHeader(title: l10n.settingsTracking),
           _SettingsCard(
@@ -62,23 +90,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: l10n.settingsScreenTimeDescription,
                 trailing: Switch(
                   value: _screenTimeEnabled,
-                  onChanged: (v) {
-                    HapticFeedbackUtil.trigger(HapticLevel.light);
-                    setState(() => _screenTimeEnabled = v);
-                  },
+                  onChanged:
+                      _screenTimeService.isSupported && !_isScreenTimeLoading
+                          ? _onScreenTimeToggle
+                          : null,
                 ),
+              ),
+              _SettingsTile(
+                icon: Icons.bar_chart_rounded,
+                title: l10n.settingsScreenTimeOpen,
+                subtitle: l10n.settingsScreenTimeOpenDescription,
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _screenTimeEnabled ? _openScreenTime : null,
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Sync status section
           _SectionHeader(title: l10n.settingsSync),
           const _SyncStatusCard(),
-          
+
           const SizedBox(height: 16),
-          
+
           // About section
           _SectionHeader(title: l10n.settingsAbout),
           _SettingsCard(
@@ -86,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SettingsTile(
                 icon: Icons.info_outline,
                 title: l10n.settingsAppVersion,
-                subtitle: '1.0.0',
+                subtitle: '2.0.1',
               ),
               _SettingsTile(
                 icon: Icons.code,
@@ -170,6 +205,116 @@ class _SettingsScreenState extends State<SettingsScreen> {
         }
       }
     }
+  }
+
+  Future<void> _loadScreenTimePreference() async {
+    final isEnabled = await _screenTimeSettingsService.isScreenTimeEnabled();
+    final hasPermission =
+        isEnabled ? await _screenTimeService.hasPermission() : false;
+
+    if (isEnabled && !hasPermission) {
+      await _screenTimeSettingsService.setScreenTimeEnabled(false);
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _screenTimeEnabled = isEnabled && hasPermission;
+      _isScreenTimeLoading = false;
+    });
+  }
+
+  Future<void> _onScreenTimeToggle(bool enabled) async {
+    HapticFeedbackUtil.trigger(HapticLevel.light);
+
+    if (!enabled) {
+      await _screenTimeSettingsService.setScreenTimeEnabled(false);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _screenTimeEnabled = false;
+      });
+      return;
+    }
+
+    final hasPermission = await _screenTimeService.hasPermission();
+    if (hasPermission) {
+      await _screenTimeSettingsService.setScreenTimeEnabled(true);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _screenTimeEnabled = true;
+      });
+      return;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    final shouldOpenSettings = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(context.l10n.settingsScreenTimePermissionTitle),
+            content: Text(
+              context.l10n.settingsScreenTimePermissionMessage,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(context.l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(context.l10n.settingsScreenTimeOpenSettings),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!shouldOpenSettings) {
+      return;
+    }
+
+    setState(() {
+      _awaitingScreenTimePermission = true;
+    });
+    await _screenTimeService.requestPermission();
+  }
+
+  Future<void> _handleScreenTimePermissionReturn() async {
+    final hasPermission = await _screenTimeService.hasPermission();
+    await _screenTimeSettingsService.setScreenTimeEnabled(hasPermission);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _awaitingScreenTimePermission = false;
+      _screenTimeEnabled = hasPermission;
+    });
+
+    if (hasPermission) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.settingsScreenTimePermissionGranted),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  void _openScreenTime() {
+    HapticFeedbackUtil.trigger(HapticLevel.light);
+    context.push('/screen-time');
   }
 }
 

@@ -1088,6 +1088,42 @@ abstract class AppLocalizations {
   /// **'Track your daily phone usage'**
   String get settingsScreenTimeDescription;
 
+  /// Dialog title shown before opening Android usage access settings
+  ///
+  /// In en, this message translates to:
+  /// **'Screen time access'**
+  String get settingsScreenTimePermissionTitle;
+
+  /// Dialog message explaining the Android usage access permission
+  ///
+  /// In en, this message translates to:
+  /// **'To track your screen time, v32 needs access to your app usage data. You\'ll be redirected to Android settings to grant this permission.'**
+  String get settingsScreenTimePermissionMessage;
+
+  /// Button label that opens Android usage access settings
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get settingsScreenTimeOpenSettings;
+
+  /// Snackbar shown when Android usage access permission has been granted
+  ///
+  /// In en, this message translates to:
+  /// **'Screen time access enabled'**
+  String get settingsScreenTimePermissionGranted;
+
+  /// Settings row label that opens the screen time screen
+  ///
+  /// In en, this message translates to:
+  /// **'Open screen time'**
+  String get settingsScreenTimeOpen;
+
+  /// Settings row subtitle that opens the screen time screen
+  ///
+  /// In en, this message translates to:
+  /// **'View today\'s screen time breakdown'**
+  String get settingsScreenTimeOpenDescription;
+
   /// Section header for sync settings
   ///
   /// In en, this message translates to:

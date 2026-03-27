@@ -44,7 +44,7 @@ class StaggeredItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final start = (index * startMultiplier);
+    final start = math.min(1.0, index * startMultiplier);
     final end = math.min(1.0, start + intervalDuration);
     final animation = CurvedAnimation(
       parent: animationController,

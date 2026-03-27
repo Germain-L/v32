@@ -543,6 +543,27 @@ class AppLocalizationsFr extends AppLocalizations {
       'Suivez votre utilisation quotidienne du téléphone';
 
   @override
+  String get settingsScreenTimePermissionTitle => 'Accès au temps d\'écran';
+
+  @override
+  String get settingsScreenTimePermissionMessage =>
+      'Pour suivre votre temps d\'écran, v32 a besoin d\'accéder à vos données d\'utilisation des applications. Vous serez redirigé vers les réglages Android pour accorder cette permission.';
+
+  @override
+  String get settingsScreenTimeOpenSettings => 'Ouvrir les réglages';
+
+  @override
+  String get settingsScreenTimePermissionGranted =>
+      'Accès au temps d\'écran activé';
+
+  @override
+  String get settingsScreenTimeOpen => 'Ouvrir le temps d\'écran';
+
+  @override
+  String get settingsScreenTimeOpenDescription =>
+      'Voir le détail du temps d\'écran du jour';
+
+  @override
   String get settingsSync => 'Synchronisation';
 
   @override

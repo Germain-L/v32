@@ -10,18 +10,36 @@ class MockScreenTimeRepository implements ScreenTimeRepository {
 
   @override
   Future<ScreenTime> saveScreenTime(ScreenTime screenTime) async {
+    late final ScreenTime savedScreenTime;
+
     if (screenTime.id == null) {
-      final newScreenTime = screenTime.copyWith(id: _nextId++);
-      _screenTimes[newScreenTime.id!] = newScreenTime;
-      return newScreenTime;
+      savedScreenTime = screenTime.copyWith(id: _nextId++);
     } else {
-      _screenTimes[screenTime.id!] = screenTime;
-      return screenTime;
+      savedScreenTime = screenTime;
     }
+
+    _screenTimes[savedScreenTime.id!] = savedScreenTime;
+
+    if (screenTime.apps.isNotEmpty) {
+      _screenTimeApps[savedScreenTime.id!] = screenTime.apps
+          .map(
+            (app) => app.copyWith(screenTimeId: savedScreenTime.id!),
+          )
+          .toList(growable: false);
+    }
+
+    return _withApps(savedScreenTime);
   }
 
   @override
-  Future<ScreenTime?> getScreenTimeById(int id) async => _screenTimes[id];
+  Future<ScreenTime?> getScreenTimeById(int id) async {
+    final screenTime = _screenTimes[id];
+    if (screenTime == null) {
+      return null;
+    }
+
+    return _withApps(screenTime);
+  }
 
   @override
   Future<ScreenTime?> getScreenTimeForDate(DateTime date) async {
@@ -38,7 +56,7 @@ class MockScreenTimeRepository implements ScreenTimeRepository {
 
     if (screenTimes.isEmpty) return null;
     screenTimes.sort((a, b) => b.date.compareTo(a.date));
-    return screenTimes.first;
+    return _withApps(screenTimes.first);
   }
 
   @override
@@ -82,14 +100,17 @@ class MockScreenTimeRepository implements ScreenTimeRepository {
   Future<void> updateServerId(int localId, int serverId) async {
     final screenTime = _screenTimes[localId];
     if (screenTime != null) {
-      _screenTimes[localId] = screenTime.copyWith(serverId: serverId, pendingSync: false);
+      _screenTimes[localId] =
+          screenTime.copyWith(serverId: serverId, pendingSync: false);
     }
   }
 
   @override
   Future<void> saveScreenTimeApps(
       int screenTimeId, List<ScreenTimeApp> apps) async {
-    _screenTimeApps[screenTimeId] = apps;
+    _screenTimeApps[screenTimeId] = apps
+        .map((app) => app.copyWith(screenTimeId: screenTimeId))
+        .toList(growable: false);
   }
 
   @override
@@ -102,5 +123,14 @@ class MockScreenTimeRepository implements ScreenTimeRepository {
     _screenTimes.clear();
     _screenTimeApps.clear();
     _nextId = 1;
+  }
+
+  ScreenTime _withApps(ScreenTime screenTime) {
+    if (screenTime.id == null) {
+      return screenTime;
+    }
+
+    final apps = _screenTimeApps[screenTime.id!] ?? const <ScreenTimeApp>[];
+    return screenTime.copyWith(apps: apps);
   }
 }

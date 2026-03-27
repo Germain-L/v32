@@ -1,17 +1,27 @@
 import 'dart:async';
+
 import '../models/screen_time.dart';
 import '../services/database_service.dart';
+import '../services/screen_time_service.dart';
 import 'screen_time_repository_interface.dart';
 
 class LocalScreenTimeRepository implements ScreenTimeRepository {
+  LocalScreenTimeRepository({
+    ScreenTimeService? screenTimeService,
+  }) : _screenTimeService = screenTimeService ?? ScreenTimeService();
+
+  final ScreenTimeService _screenTimeService;
+
   @override
   Future<ScreenTime> saveScreenTime(ScreenTime screenTime) async {
     final db = await DatabaseService.database;
+    late ScreenTime savedScreenTime;
+
     if (screenTime.id == null) {
       final id =
           await db.insert('screen_times', screenTime.toMap()..remove('id'));
       await DatabaseService.notifyChange(table: 'screen_times');
-      return screenTime.copyWith(id: id);
+      savedScreenTime = screenTime.copyWith(id: id);
     } else {
       await db.update(
         'screen_times',
@@ -19,9 +29,21 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
         where: 'id = ?',
         whereArgs: [screenTime.id],
       );
+      savedScreenTime = screenTime;
     }
+
+    if (screenTime.apps.isNotEmpty && savedScreenTime.id != null) {
+      final apps = screenTime.apps
+          .map(
+            (app) => app.copyWith(screenTimeId: savedScreenTime.id!),
+          )
+          .toList(growable: false);
+      await saveScreenTimeApps(savedScreenTime.id!, apps);
+      savedScreenTime = savedScreenTime.copyWith(apps: apps);
+    }
+
     await DatabaseService.notifyChange(table: 'screen_times');
-    return screenTime;
+    return savedScreenTime;
   }
 
   Future<void> saveScreenTimes(List<ScreenTime> screenTimes) async {
@@ -52,7 +74,7 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
         await db.query('screen_times', where: 'id = ?', whereArgs: [id]);
 
     if (maps.isEmpty) return null;
-    return ScreenTime.fromMap(maps.first);
+    return _hydrateScreenTime(ScreenTime.fromMap(maps.first));
   }
 
   @override
@@ -73,7 +95,7 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
     );
 
     if (maps.isEmpty) return null;
-    return ScreenTime.fromMap(maps.first);
+    return _hydrateScreenTime(ScreenTime.fromMap(maps.first));
   }
 
   @override
@@ -92,7 +114,9 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
         orderBy: 'date DESC',
         limit: limit,
       );
-      return maps.map((map) => ScreenTime.fromMap(map)).toList();
+      return _hydrateScreenTimes(
+        maps.map((map) => ScreenTime.fromMap(map)).toList(),
+      );
     }
 
     yield await load();
@@ -113,7 +137,9 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
       orderBy: 'date ASC',
     );
 
-    return maps.map((map) => ScreenTime.fromMap(map)).toList();
+    return _hydrateScreenTimes(
+      maps.map((map) => ScreenTime.fromMap(map)).toList(),
+    );
   }
 
   @override
@@ -128,7 +154,9 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
       limit: limit,
     );
 
-    return maps.map((map) => ScreenTime.fromMap(map)).toList();
+    return _hydrateScreenTimes(
+      maps.map((map) => ScreenTime.fromMap(map)).toList(),
+    );
   }
 
   @override
@@ -141,7 +169,9 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
       orderBy: 'created_at ASC',
     );
 
-    return maps.map((map) => ScreenTime.fromMap(map)).toList();
+    return _hydrateScreenTimes(
+      maps.map((map) => ScreenTime.fromMap(map)).toList(),
+    );
   }
 
   @override
@@ -177,6 +207,7 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
       );
     }
     await batch.commit(noResult: true);
+    await DatabaseService.notifyChange(table: 'screen_time_apps');
   }
 
   @override
@@ -190,5 +221,120 @@ class LocalScreenTimeRepository implements ScreenTimeRepository {
     );
 
     return maps.map((map) => ScreenTimeApp.fromMap(map)).toList();
+  }
+
+  Future<ScreenTime?> syncFromNative(DateTime date) async {
+    final data = await _screenTimeService.getScreenTimeForDate(
+      year: date.year,
+      month: date.month,
+      day: date.day,
+    );
+
+    if (data == null) {
+      return null;
+    }
+
+    final existing = await getScreenTimeForDate(date);
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final pickups = _readNullableInt(data['pickups']);
+    final apps = _parseApps(data['apps'], existing?.id);
+
+    if (existing != null &&
+        existing.totalMs == _readInt(data['totalMs']) &&
+        existing.pickups == pickups &&
+        _sameApps(existing.apps, apps)) {
+      return existing;
+    }
+
+    final saved = await saveScreenTime(
+      ScreenTime(
+        id: existing?.id,
+        serverId: existing?.serverId,
+        date: normalizedDate,
+        totalMs: _readInt(data['totalMs']),
+        pickups: pickups,
+        createdAt: existing?.createdAt,
+        pendingSync: true,
+      ),
+    );
+
+    if (saved.id == null) {
+      return saved;
+    }
+
+    final appsWithScreenTimeId = apps
+        .map((app) => app.copyWith(screenTimeId: saved.id!))
+        .toList(growable: false);
+    await saveScreenTimeApps(saved.id!, appsWithScreenTimeId);
+
+    return saved.copyWith(apps: appsWithScreenTimeId);
+  }
+
+  Future<ScreenTime> _hydrateScreenTime(ScreenTime screenTime) async {
+    if (screenTime.id == null) {
+      return screenTime;
+    }
+
+    final apps = await getScreenTimeApps(screenTime.id!);
+    return screenTime.copyWith(apps: List.unmodifiable(apps));
+  }
+
+  Future<List<ScreenTime>> _hydrateScreenTimes(List<ScreenTime> screenTimes) {
+    return Future.wait(
+      screenTimes.map(_hydrateScreenTime),
+    );
+  }
+
+  List<ScreenTimeApp> _parseApps(dynamic rawApps, int? screenTimeId) {
+    final apps = rawApps as List<dynamic>? ?? const <dynamic>[];
+    return apps
+        .whereType<Map<dynamic, dynamic>>()
+        .map(
+          (app) => ScreenTimeApp(
+            screenTimeId: screenTimeId ?? 0,
+            packageName: app['packageName'] as String? ?? '',
+            appName: app['appName'] as String? ??
+                app['packageName'] as String? ??
+                '',
+            durationMs: _readInt(app['durationMs']),
+          ),
+        )
+        .where((app) => app.packageName.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  bool _sameApps(List<ScreenTimeApp> left, List<ScreenTimeApp> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+
+    for (var i = 0; i < left.length; i++) {
+      final leftApp = left[i];
+      final rightApp = right[i];
+      if (leftApp.packageName != rightApp.packageName ||
+          leftApp.appName != rightApp.appName ||
+          leftApp.durationMs != rightApp.durationMs) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  int _readInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    return 0;
+  }
+
+  int? _readNullableInt(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    return _readInt(value);
   }
 }

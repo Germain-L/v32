@@ -1,5 +1,7 @@
 import 'dart:developer' as dev;
+
 import '../models/screen_time.dart';
+import '../services/screen_time_settings_service.dart';
 import 'local_screen_time_repository.dart';
 import 'screen_time_repository_interface.dart';
 
@@ -7,10 +9,13 @@ import 'screen_time_repository_interface.dart';
 /// Local storage acts as a cache.
 class RemoteScreenTimeRepository implements ScreenTimeRepository {
   final LocalScreenTimeRepository _cache;
+  final ScreenTimeSettingsService _settingsService;
 
   RemoteScreenTimeRepository({
     LocalScreenTimeRepository? cache,
-  }) : _cache = cache ?? LocalScreenTimeRepository();
+    ScreenTimeSettingsService? settingsService,
+  })  : _cache = cache ?? LocalScreenTimeRepository(),
+        _settingsService = settingsService ?? ScreenTimeSettingsService();
 
   static void _log(String message) {
     dev.log('[REMOTE_SCREEN_TIME_REPO] $message', name: 'v32');
@@ -35,8 +40,16 @@ class RemoteScreenTimeRepository implements ScreenTimeRepository {
   Future<ScreenTime?> getScreenTimeById(int id) => _cache.getScreenTimeById(id);
 
   @override
-  Future<ScreenTime?> getScreenTimeForDate(DateTime date) =>
-      _cache.getScreenTimeForDate(date);
+  Future<ScreenTime?> getScreenTimeForDate(DateTime date) async {
+    if (await _settingsService.isScreenTimeEnabled()) {
+      final synced = await _cache.syncFromNative(date);
+      if (synced != null) {
+        return synced;
+      }
+    }
+
+    return _cache.getScreenTimeForDate(date);
+  }
 
   @override
   Future<void> deleteScreenTime(int id) async {
@@ -67,8 +80,7 @@ class RemoteScreenTimeRepository implements ScreenTimeRepository {
       _cache.updateServerId(localId, serverId);
 
   @override
-  Future<void> saveScreenTimeApps(
-          int screenTimeId, List<ScreenTimeApp> apps) =>
+  Future<void> saveScreenTimeApps(int screenTimeId, List<ScreenTimeApp> apps) =>
       _cache.saveScreenTimeApps(screenTimeId, apps);
 
   @override

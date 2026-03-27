@@ -24,4 +24,7 @@ class SettingsKeys {
 
   // Language
   static const String languageOverride = 'settings.languageOverride';
+
+  // Screen time
+  static const String screenTimeEnabled = 'settings.screenTimeEnabled';
 }
