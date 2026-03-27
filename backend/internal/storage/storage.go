@@ -93,7 +93,6 @@ func createTables(db *sql.DB) error {
 			deleted_at INTEGER
 		)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_screen_time_date ON screen_time(date)`,
-		`CREATE INDEX IF NOT EXISTS idx_screen_time_updated_at ON screen_time(updated_at)`,
 		`CREATE TABLE IF NOT EXISTS screen_time_apps(
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			screen_time_id INTEGER NOT NULL,
