@@ -48,6 +48,7 @@ func (h *Handlers) Routes() *http.ServeMux {
 	// Screen time
 	mux.HandleFunc("/screen-time", h.screenTimeHandler)
 	mux.HandleFunc("/screen-time/recent", h.recentScreenTime)
+	mux.HandleFunc("/screen-time/since", h.screenTimeSince)
 	mux.HandleFunc("/screen-time/stats", h.screenTimeStats)
 
 	// Workouts
@@ -72,10 +73,15 @@ func (h *Handlers) Routes() *http.ServeMux {
 
 	// Day ratings
 	mux.HandleFunc("/rating", h.ratingHandler)
+	mux.HandleFunc("/rating/since", h.ratingSince)
+	mux.HandleFunc("/daily-metrics", h.dailyMetricsHandler)
+	mux.HandleFunc("/daily-metrics/since", h.dailyMetricsSince)
 	mux.HandleFunc("/checkins", h.checkinHandler)
 	mux.HandleFunc("/checkins/recent", h.recentCheckins)
+	mux.HandleFunc("/checkins/since", h.checkinsSince)
 	mux.HandleFunc("/hydration", h.hydrationHandler)
 	mux.HandleFunc("/hydration/recent", h.recentHydration)
+	mux.HandleFunc("/hydration/since", h.hydrationSince)
 	mux.HandleFunc("/hydration/", h.deleteHydration)
 
 	return mux
@@ -510,6 +516,8 @@ func (h *Handlers) screenTimeHandler(w http.ResponseWriter, r *http.Request) {
 		h.screenTimeByDate(w, r)
 	case http.MethodPost:
 		h.saveScreenTime(w, r)
+	case http.MethodDelete:
+		h.deleteScreenTime(w, r)
 	default:
 		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
 	}
@@ -571,6 +579,71 @@ func (h *Handlers) saveScreenTime(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"screenTime": screenTime,
 		"apps":       payload.Apps,
+	})
+}
+
+func (h *Handlers) deleteScreenTime(w http.ResponseWriter, r *http.Request) {
+	dateValue := r.URL.Query().Get("date")
+	if dateValue == "" {
+		http.Error(w, `{"error":"date query parameter required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dateMillis, err := parseDateMillis(dateValue)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.store.DeleteScreenTime(dateMillis); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error":"screen time not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf(`{"error":"delete error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) screenTimeSince(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	timestampStr := r.URL.Query().Get("timestamp")
+	if timestampStr == "" {
+		http.Error(w, `{"error":"timestamp parameter required (epoch millis)"}`, http.StatusBadRequest)
+		return
+	}
+
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid timestamp"}`, http.StatusBadRequest)
+		return
+	}
+
+	screenTimes, deletedDates, err := h.store.GetScreenTimeSince(timestamp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"database error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	var latestTimestamp int64
+	for _, entry := range screenTimes {
+		if entry.UpdatedAt > latestTimestamp {
+			latestTimestamp = entry.UpdatedAt
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"screenTimes":  screenTimes,
+		"deletedDates": deletedDates,
+		"timestamp":    latestTimestamp,
 	})
 }
 
@@ -1005,11 +1078,24 @@ func (h *Handlers) bulkMeals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var meals []models.Meal
-	if err := json.NewDecoder(r.Body).Decode(&meals); err != nil {
-		log.Printf("[ERROR] Invalid JSON: %v", err)
-		http.Error(w, fmt.Sprintf(`{"error":"invalid JSON: %v"}`, err), http.StatusBadRequest)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("[ERROR] Read bulk meals body: %v", err)
+		http.Error(w, fmt.Sprintf(`{"error":"read error: %v"}`, err), http.StatusBadRequest)
 		return
+	}
+
+	var meals []models.Meal
+	if err := json.Unmarshal(body, &meals); err != nil {
+		var payload struct {
+			Meals []models.Meal `json:"meals"`
+		}
+		if err := json.Unmarshal(body, &payload); err != nil {
+			log.Printf("[ERROR] Invalid bulk meals JSON: %v", err)
+			http.Error(w, fmt.Sprintf(`{"error":"invalid JSON: %v"}`, err), http.StatusBadRequest)
+			return
+		}
+		meals = payload.Meals
 	}
 
 	if len(meals) == 0 {
@@ -1035,7 +1121,7 @@ func (h *Handlers) bulkMeals(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("[INFO] Bulk saved %d meals", len(results))
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(results)
+	json.NewEncoder(w).Encode(map[string]interface{}{"meals": results})
 }
 
 // --- Workouts ---
@@ -1367,6 +1453,25 @@ func (h *Handlers) serveImage(w http.ResponseWriter, r *http.Request) {
 	}
 	filename := parts[1]
 
+	if r.Method == http.MethodDelete {
+		if err := h.store.DeleteImage(mealID, filename); err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, `{"error":"image not found"}`, http.StatusNotFound)
+				return
+			}
+			http.Error(w, fmt.Sprintf(`{"error":"delete error: %v"}`, err), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
 	imagePath := h.store.GetImagePath(mealID, filename)
 	http.ServeFile(w, r, imagePath)
 }
@@ -1400,6 +1505,8 @@ func (h *Handlers) ratingHandler(w http.ResponseWriter, r *http.Request) {
 		h.getRating(w, r)
 	case http.MethodPost:
 		h.saveRating(w, r)
+	case http.MethodDelete:
+		h.deleteRating(w, r)
 	default:
 		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
 	}
@@ -1452,6 +1559,195 @@ func (h *Handlers) saveRating(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(rating)
 }
 
+func (h *Handlers) deleteRating(w http.ResponseWriter, r *http.Request) {
+	dateValue := r.URL.Query().Get("date")
+	if dateValue == "" {
+		http.Error(w, `{"error":"date query parameter required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dateMillis, err := parseDateMillis(dateValue)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.store.DeleteDayRating(dateMillis); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error":"rating not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf(`{"error":"delete error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) ratingSince(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	timestampStr := r.URL.Query().Get("timestamp")
+	if timestampStr == "" {
+		http.Error(w, `{"error":"timestamp parameter required (epoch millis)"}`, http.StatusBadRequest)
+		return
+	}
+
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid timestamp"}`, http.StatusBadRequest)
+		return
+	}
+
+	ratings, deletedDates, err := h.store.GetDayRatingsSince(timestamp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"database error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	var latestTimestamp int64
+	for _, rating := range ratings {
+		if rating.UpdatedAt > latestTimestamp {
+			latestTimestamp = rating.UpdatedAt
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ratings":      ratings,
+		"deletedDates": deletedDates,
+		"timestamp":    latestTimestamp,
+	})
+}
+
+// --- Daily Metrics ---
+
+func (h *Handlers) dailyMetricsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	switch r.Method {
+	case http.MethodGet:
+		h.getDailyMetrics(w, r)
+	case http.MethodPost:
+		h.saveDailyMetrics(w, r)
+	case http.MethodDelete:
+		h.deleteDailyMetrics(w, r)
+	default:
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *Handlers) getDailyMetrics(w http.ResponseWriter, r *http.Request) {
+	dateStr, err := normalizeDateQuery(r.URL.Query().Get("date"))
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	metrics, err := h.store.GetDailyMetricsByDate(dateStr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"database error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	if metrics == nil {
+		json.NewEncoder(w).Encode(nil)
+		return
+	}
+
+	json.NewEncoder(w).Encode(metrics)
+}
+
+func (h *Handlers) saveDailyMetrics(w http.ResponseWriter, r *http.Request) {
+	var metrics models.DailyMetrics
+	if err := json.NewDecoder(r.Body).Decode(&metrics); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"invalid JSON: %v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	if metrics.Date <= 0 {
+		http.Error(w, `{"error":"invalid daily metrics: date required"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := h.store.SaveDailyMetrics(&metrics); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"save error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(metrics)
+}
+
+func (h *Handlers) deleteDailyMetrics(w http.ResponseWriter, r *http.Request) {
+	dateValue := r.URL.Query().Get("date")
+	if dateValue == "" {
+		http.Error(w, `{"error":"date query parameter required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dateMillis, err := parseDateMillis(dateValue)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.store.DeleteDailyMetrics(dateMillis); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error":"daily metrics not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf(`{"error":"delete error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) dailyMetricsSince(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	timestampStr := r.URL.Query().Get("timestamp")
+	if timestampStr == "" {
+		http.Error(w, `{"error":"timestamp parameter required (epoch millis)"}`, http.StatusBadRequest)
+		return
+	}
+
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid timestamp"}`, http.StatusBadRequest)
+		return
+	}
+
+	metrics, deletedDates, err := h.store.GetDailyMetricsSince(timestamp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"database error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	var latestTimestamp int64
+	for _, metric := range metrics {
+		if metric.UpdatedAt > latestTimestamp {
+			latestTimestamp = metric.UpdatedAt
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"dailyMetrics": metrics,
+		"deletedDates": deletedDates,
+		"timestamp":    latestTimestamp,
+	})
+}
+
 // --- Daily Checkins ---
 
 func (h *Handlers) checkinHandler(w http.ResponseWriter, r *http.Request) {
@@ -1462,6 +1758,8 @@ func (h *Handlers) checkinHandler(w http.ResponseWriter, r *http.Request) {
 		h.getCheckin(w, r)
 	case http.MethodPost:
 		h.saveCheckin(w, r)
+	case http.MethodDelete:
+		h.deleteCheckin(w, r)
 	default:
 		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
 	}
@@ -1533,6 +1831,71 @@ func (h *Handlers) recentCheckins(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(checkins)
 }
 
+func (h *Handlers) deleteCheckin(w http.ResponseWriter, r *http.Request) {
+	dateValue := r.URL.Query().Get("date")
+	if dateValue == "" {
+		http.Error(w, `{"error":"date query parameter required"}`, http.StatusBadRequest)
+		return
+	}
+
+	dateMillis, err := parseDateMillis(dateValue)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%v"}`, err), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.store.DeleteCheckin(dateMillis); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error":"checkin not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf(`{"error":"delete error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) checkinsSince(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	timestampStr := r.URL.Query().Get("timestamp")
+	if timestampStr == "" {
+		http.Error(w, `{"error":"timestamp parameter required (epoch millis)"}`, http.StatusBadRequest)
+		return
+	}
+
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid timestamp"}`, http.StatusBadRequest)
+		return
+	}
+
+	checkins, deletedDates, err := h.store.GetCheckinsSince(timestamp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"database error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	var latestTimestamp int64
+	for _, checkin := range checkins {
+		if checkin.UpdatedAt > latestTimestamp {
+			latestTimestamp = checkin.UpdatedAt
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"checkins":     checkins,
+		"deletedDates": deletedDates,
+		"timestamp":    latestTimestamp,
+	})
+}
+
 // --- Hydration ---
 
 func (h *Handlers) hydrationHandler(w http.ResponseWriter, r *http.Request) {
@@ -1543,6 +1906,8 @@ func (h *Handlers) hydrationHandler(w http.ResponseWriter, r *http.Request) {
 		h.getHydration(w, r)
 	case http.MethodPost:
 		h.saveHydration(w, r)
+	case http.MethodDelete:
+		h.deleteHydrationByQuery(w, r)
 	default:
 		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
 	}
@@ -1639,4 +2004,102 @@ func (h *Handlers) deleteHydration(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) deleteHydrationByQuery(w http.ResponseWriter, r *http.Request) {
+	idValue := r.URL.Query().Get("id")
+	if idValue == "" {
+		http.Error(w, `{"error":"id query parameter required"}`, http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.ParseInt(idValue, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid hydration ID"}`, http.StatusBadRequest)
+		return
+	}
+
+	if err := h.store.DeleteHydration(id); err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, `{"error":"hydration not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, fmt.Sprintf(`{"error":"delete error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handlers) hydrationSince(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	timestampStr := r.URL.Query().Get("timestamp")
+	if timestampStr == "" {
+		http.Error(w, `{"error":"timestamp parameter required (epoch millis)"}`, http.StatusBadRequest)
+		return
+	}
+
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"invalid timestamp"}`, http.StatusBadRequest)
+		return
+	}
+
+	entries, deletedIDs, err := h.store.GetHydrationSince(timestamp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"database error: %v"}`, err), http.StatusInternalServerError)
+		return
+	}
+
+	var latestTimestamp int64
+	for _, entry := range entries {
+		if entry.UpdatedAt > latestTimestamp {
+			latestTimestamp = entry.UpdatedAt
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"hydrations": entries,
+		"deletedIds": deletedIDs,
+		"timestamp":  latestTimestamp,
+	})
+}
+
+func normalizeDateQuery(value string) (string, error) {
+	if value == "" {
+		return "", fmt.Errorf("date parameter required")
+	}
+
+	if millis, err := strconv.ParseInt(value, 10, 64); err == nil {
+		return time.UnixMilli(millis).UTC().Format("2006-01-02"), nil
+	}
+
+	if _, err := time.Parse("2006-01-02", value); err != nil {
+		return "", fmt.Errorf("invalid date, expected YYYY-MM-DD or epoch millis")
+	}
+
+	return value, nil
+}
+
+func parseDateMillis(value string) (int64, error) {
+	if value == "" {
+		return 0, fmt.Errorf("date parameter required")
+	}
+
+	if millis, err := strconv.ParseInt(value, 10, 64); err == nil {
+		return millis, nil
+	}
+
+	parsed, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return 0, fmt.Errorf("invalid date, expected YYYY-MM-DD or epoch millis")
+	}
+
+	return parsed.UnixMilli(), nil
 }

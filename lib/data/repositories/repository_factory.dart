@@ -5,15 +5,10 @@ import 'workout_repository_interface.dart';
 import 'body_metric_repository_interface.dart';
 import 'screen_time_repository_interface.dart';
 import 'hydration_repository_interface.dart';
-import 'local_daily_metrics_repository.dart';
-import 'local_day_rating_repository.dart';
-import 'local_daily_checkin_repository.dart';
-import 'local_workout_repository.dart';
-import 'local_body_metric_repository.dart';
-import 'local_screen_time_repository.dart';
-import 'local_hydration_repository.dart';
 import 'remote_meal_repository.dart';
 import 'syncing_daily_checkin_repository.dart';
+import 'syncing_daily_metrics_repository.dart';
+import 'syncing_day_rating_repository.dart';
 import 'syncing_workout_repository.dart';
 import 'syncing_body_metric_repository.dart';
 import 'syncing_screen_time_repository.dart';
@@ -48,7 +43,7 @@ class RepositoryFactory {
   }
 
   DailyMetricsRepository getDailyMetricsRepository() {
-    _dailyMetricsRepository ??= LocalDailyMetricsRepository();
+    _dailyMetricsRepository ??= SyncingDailyMetricsRepository();
     return _dailyMetricsRepository!;
   }
 
@@ -57,7 +52,7 @@ class RepositoryFactory {
   }
 
   DayRatingRepository getDayRatingRepository() {
-    _dayRatingRepository ??= LocalDayRatingRepository();
+    _dayRatingRepository ??= SyncingDayRatingRepository();
     return _dayRatingRepository!;
   }
 

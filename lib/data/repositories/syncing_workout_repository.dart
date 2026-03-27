@@ -1,5 +1,8 @@
 import 'dart:developer' as dev;
 import '../models/workout.dart';
+import '../models/sync_operation.dart';
+import '../services/sync_config.dart';
+import '../services/sync_service.dart';
 import 'local_workout_repository.dart';
 import 'workout_repository_interface.dart';
 
@@ -7,10 +10,22 @@ import 'workout_repository_interface.dart';
 /// Wraps LocalWorkoutRepository and adds sync functionality.
 class SyncingWorkoutRepository implements WorkoutRepository {
   final LocalWorkoutRepository _localRepo;
+  final SyncService? _syncService;
 
   SyncingWorkoutRepository({
     LocalWorkoutRepository? localRepo,
-  }) : _localRepo = localRepo ?? LocalWorkoutRepository();
+    SyncService? syncService,
+  })  : _localRepo = localRepo ?? LocalWorkoutRepository(),
+        _syncService = syncService ?? _resolveSyncService();
+
+  static SyncService? _resolveSyncService() {
+    if (!SyncConfig.enabled ||
+        !SyncConfig.hasCredentials ||
+        !SyncService.isInitialized) {
+      return null;
+    }
+    return SyncService.instance;
+  }
 
   static void _log(String message) {
     dev.log('[SYNCING_WORKOUT_REPO] $message', name: 'v32');
@@ -20,11 +35,26 @@ class SyncingWorkoutRepository implements WorkoutRepository {
   Future<Workout> saveWorkout(Workout workout) async {
     _log('saveWorkout called: type=${workout.type.name}, id=${workout.id}');
 
-    // Save locally first
-    final saved = await _localRepo.saveWorkout(workout);
+    final workoutToSave = workout.copyWith(
+      updatedAt: DateTime.now(),
+      pendingSync: true,
+    );
+    final saved = await _localRepo.saveWorkout(workoutToSave);
     _log('Workout saved locally: id=${saved.id}');
 
-    // TODO: Trigger sync when backend endpoints are available
+    final syncService = _syncService;
+    if (syncService != null) {
+      syncService
+          .syncWorkout(
+        saved,
+        workout.id == null ? OperationType.create : OperationType.update,
+      )
+          .then((success) {
+        _log(
+          'Workout sync ${success ? "succeeded" : "failed (will retry later)"}',
+        );
+      });
+    }
 
     return saved;
   }
@@ -35,6 +65,16 @@ class SyncingWorkoutRepository implements WorkoutRepository {
   @override
   Future<void> deleteWorkout(int id) async {
     _log('deleteWorkout called: id=$id');
+    final workout = await _localRepo.getWorkoutById(id);
+    final syncService = _syncService;
+    final serverId = workout?.serverId;
+    if (serverId != null && syncService != null) {
+      await syncService.queueDeleteWorkout(serverId);
+      final deleted = await syncService.deleteWorkout(serverId);
+      if (deleted) {
+        await syncService.completeQueuedOperation('workout_delete:$serverId');
+      }
+    }
     await _localRepo.deleteWorkout(id);
   }
 
@@ -58,7 +98,8 @@ class SyncingWorkoutRepository implements WorkoutRepository {
     DateTime date, {
     int? id,
     int limit = 20,
-  }) => _localRepo.getWorkoutsBeforeCursor(date, id: id, limit: limit);
+  }) =>
+      _localRepo.getWorkoutsBeforeCursor(date, id: id, limit: limit);
 
   @override
   Future<List<Workout>> getWorkoutsForMonth(int year, int month) =>

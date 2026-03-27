@@ -15,14 +15,16 @@ class SyncingMealRepository implements MealRepository {
   SyncingMealRepository({
     LocalMealRepository? localRepo,
     SyncService? syncService,
-  }) : _localRepo = localRepo ?? LocalMealRepository(),
-       _syncService = syncService;
+  })  : _localRepo = localRepo ?? LocalMealRepository(),
+        _syncService = syncService;
 
   /// Create with sync enabled (if configured).
   factory SyncingMealRepository.withSync() {
-    _log('Creating SyncingMealRepository, sync enabled: ${SyncConfig.enabled}');
+    _log(
+      'Creating SyncingMealRepository, sync enabled: ${SyncConfig.enabled && SyncConfig.hasCredentials}',
+    );
 
-    if (!SyncConfig.enabled) {
+    if (!SyncConfig.enabled || !SyncConfig.hasCredentials) {
       _log('Sync disabled by config');
       return SyncingMealRepository(syncService: null);
     }
@@ -52,7 +54,7 @@ class SyncingMealRepository implements MealRepository {
     // Then sync in background (don't await)
     if (_syncService != null) {
       _log('Triggering sync...');
-      _syncService!.syncMeal(
+      _syncService.syncMeal(
         saved,
         meal.id == null ? OperationType.create : OperationType.update,
       );
@@ -97,7 +99,8 @@ class SyncingMealRepository implements MealRepository {
     DateTime date, {
     int? id,
     int limit = 20,
-  }) => _localRepo.getMealsBeforeCursor(date, id: id, limit: limit);
+  }) =>
+      _localRepo.getMealsBeforeCursor(date, id: id, limit: limit);
 
   @override
   Future<List<Meal>> getMealsForMonth(int year, int month) =>

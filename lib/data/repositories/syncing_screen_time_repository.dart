@@ -1,7 +1,10 @@
 import 'dart:developer' as dev;
 
 import '../models/screen_time.dart';
+import '../models/sync_operation.dart';
 import '../services/screen_time_settings_service.dart';
+import '../services/sync_config.dart';
+import '../services/sync_service.dart';
 import 'local_screen_time_repository.dart';
 import 'screen_time_repository_interface.dart';
 
@@ -10,12 +13,24 @@ import 'screen_time_repository_interface.dart';
 class SyncingScreenTimeRepository implements ScreenTimeRepository {
   final LocalScreenTimeRepository _localRepo;
   final ScreenTimeSettingsService _settingsService;
+  final SyncService? _syncService;
 
   SyncingScreenTimeRepository({
     LocalScreenTimeRepository? localRepo,
     ScreenTimeSettingsService? settingsService,
+    SyncService? syncService,
   })  : _localRepo = localRepo ?? LocalScreenTimeRepository(),
-        _settingsService = settingsService ?? ScreenTimeSettingsService();
+        _settingsService = settingsService ?? ScreenTimeSettingsService(),
+        _syncService = syncService ?? _resolveSyncService();
+
+  static SyncService? _resolveSyncService() {
+    if (!SyncConfig.enabled ||
+        !SyncConfig.hasCredentials ||
+        !SyncService.isInitialized) {
+      return null;
+    }
+    return SyncService.instance;
+  }
 
   static void _log(String message) {
     dev.log('[SYNCING_SCREEN_TIME_REPO] $message', name: 'v32');
@@ -25,11 +40,23 @@ class SyncingScreenTimeRepository implements ScreenTimeRepository {
   Future<ScreenTime> saveScreenTime(ScreenTime screenTime) async {
     _log('saveScreenTime called: date=${screenTime.date}, id=${screenTime.id}');
 
-    // Save locally first
-    final saved = await _localRepo.saveScreenTime(screenTime);
+    final screenTimeToSave = screenTime.copyWith(pendingSync: true);
+    final saved = await _localRepo.saveScreenTime(screenTimeToSave);
     _log('ScreenTime saved locally: id=${saved.id}');
 
-    // TODO: Trigger sync when backend endpoints are available
+    final syncService = _syncService;
+    if (syncService != null) {
+      syncService
+          .syncScreenTime(
+        saved,
+        screenTime.id == null ? OperationType.create : OperationType.update,
+      )
+          .then((success) {
+        _log(
+          'ScreenTime sync ${success ? "succeeded" : "failed (will retry later)"}',
+        );
+      });
+    }
 
     return saved;
   }
@@ -53,6 +80,17 @@ class SyncingScreenTimeRepository implements ScreenTimeRepository {
   @override
   Future<void> deleteScreenTime(int id) async {
     _log('deleteScreenTime called: id=$id');
+    final screenTime = await _localRepo.getScreenTimeById(id);
+    final syncService = _syncService;
+    if (screenTime != null && syncService != null) {
+      await syncService.queueDeleteScreenTime(screenTime.date);
+      final deleted = await syncService.deleteScreenTime(screenTime.date);
+      if (deleted) {
+        await syncService.completeQueuedOperation(
+          'screen_time_delete:${DateTime(screenTime.date.year, screenTime.date.month, screenTime.date.day).millisecondsSinceEpoch}',
+        );
+      }
+    }
     await _localRepo.deleteScreenTime(id);
   }
 

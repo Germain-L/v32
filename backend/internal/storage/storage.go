@@ -58,8 +58,20 @@ func createTables(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_meal_images_meal_id ON meal_images(meal_id)`,
 		`CREATE TABLE IF NOT EXISTS day_ratings(
 			date INTEGER PRIMARY KEY,
-			score INTEGER NOT NULL
+			score INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL DEFAULT 0,
+			deleted_at INTEGER
 		)`,
+		`CREATE INDEX IF NOT EXISTS idx_day_ratings_updated_at ON day_ratings(updated_at)`,
+		`CREATE TABLE IF NOT EXISTS daily_metrics(
+			date INTEGER PRIMARY KEY,
+			water_liters REAL,
+			exercise_done INTEGER,
+			exercise_note TEXT,
+			updated_at INTEGER NOT NULL,
+			deleted_at INTEGER
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_daily_metrics_updated_at ON daily_metrics(updated_at)`,
 		`CREATE TABLE IF NOT EXISTS body_metrics(
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			date INTEGER NOT NULL,
@@ -76,9 +88,12 @@ func createTables(db *sql.DB) error {
 			date INTEGER NOT NULL,
 			total_ms INTEGER NOT NULL,
 			pickups INTEGER,
-			created_at INTEGER NOT NULL
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL DEFAULT 0,
+			deleted_at INTEGER
 		)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_screen_time_date ON screen_time(date)`,
+		`CREATE INDEX IF NOT EXISTS idx_screen_time_updated_at ON screen_time(updated_at)`,
 		`CREATE TABLE IF NOT EXISTS screen_time_apps(
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			screen_time_id INTEGER NOT NULL,
@@ -119,9 +134,12 @@ func createTables(db *sql.DB) error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			date INTEGER NOT NULL,
 			amount_ml INTEGER NOT NULL,
-			created_at INTEGER NOT NULL
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL DEFAULT 0,
+			deleted_at INTEGER
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_hydration_date ON hydration(date)`,
+		`CREATE INDEX IF NOT EXISTS idx_hydration_updated_at ON hydration(updated_at)`,
 		`CREATE TABLE IF NOT EXISTS daily_checkins(
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			date INTEGER NOT NULL,
@@ -133,9 +151,11 @@ func createTables(db *sql.DB) error {
 			sleep_quality INTEGER CHECK(sleep_quality BETWEEN 1 AND 5),
 			notes TEXT,
 			created_at INTEGER NOT NULL,
-			updated_at INTEGER NOT NULL
+			updated_at INTEGER NOT NULL,
+			deleted_at INTEGER
 		)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_date ON daily_checkins(date)`,
+		`CREATE INDEX IF NOT EXISTS idx_daily_checkins_updated_at ON daily_checkins(updated_at)`,
 	}
 
 	for _, q := range queries {
@@ -153,41 +173,54 @@ func createTables(db *sql.DB) error {
 }
 
 func runMigrations(db *sql.DB) error {
-	// Check if updated_at column exists
-	row := db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('meals') WHERE name='updated_at'`)
-	var count int
-	if err := row.Scan(&count); err == nil && count == 0 {
-		// Column doesn't exist, add it
-		if _, err := db.Exec(`ALTER TABLE meals ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`); err != nil {
-			return fmt.Errorf("failed to add updated_at column: %w", err)
-		}
+	if err := ensureColumn(db, "meals", "updated_at", "INTEGER NOT NULL DEFAULT 0"); err != nil {
+		return fmt.Errorf("failed to add meals.updated_at column: %w", err)
+	}
+	if err := ensureColumn(db, "meals", "deleted_at", "INTEGER"); err != nil {
+		return fmt.Errorf("failed to add meals.deleted_at column: %w", err)
+	}
+	if err := ensureColumn(db, "meals", "server_id", "INTEGER"); err != nil {
+		return fmt.Errorf("failed to add meals.server_id column: %w", err)
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_meals_server_id ON meals(server_id) WHERE server_id IS NOT NULL`); err != nil {
+		return fmt.Errorf("failed to create server_id index: %w", err)
 	}
 
-	// Check if deleted_at column exists
-	row = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('meals') WHERE name='deleted_at'`)
-	if err := row.Scan(&count); err == nil && count == 0 {
-		if _, err := db.Exec(`ALTER TABLE meals ADD COLUMN deleted_at INTEGER`); err != nil {
-			return fmt.Errorf("failed to add deleted_at column: %w", err)
-		}
+	if err := ensureColumn(db, "day_ratings", "updated_at", "INTEGER NOT NULL DEFAULT 0"); err != nil {
+		return fmt.Errorf("failed to add day_ratings.updated_at column: %w", err)
 	}
-
-	// Check if server_id column exists
-	row = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('meals') WHERE name='server_id'`)
-	if err := row.Scan(&count); err == nil && count == 0 {
-		// Add column without UNIQUE constraint (SQLite doesn't support adding UNIQUE columns)
-		if _, err := db.Exec(`ALTER TABLE meals ADD COLUMN server_id INTEGER`); err != nil {
-			return fmt.Errorf("failed to add server_id column: %w", err)
-		}
-		// Create unique index separately
-		if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_meals_server_id ON meals(server_id) WHERE server_id IS NOT NULL`); err != nil {
-			return fmt.Errorf("failed to create server_id index: %w", err)
-		}
+	if err := ensureColumn(db, "day_ratings", "deleted_at", "INTEGER"); err != nil {
+		return fmt.Errorf("failed to add day_ratings.deleted_at column: %w", err)
+	}
+	if err := ensureColumn(db, "daily_checkins", "deleted_at", "INTEGER"); err != nil {
+		return fmt.Errorf("failed to add daily_checkins.deleted_at column: %w", err)
+	}
+	if err := ensureColumn(db, "screen_time", "updated_at", "INTEGER NOT NULL DEFAULT 0"); err != nil {
+		return fmt.Errorf("failed to add screen_time.updated_at column: %w", err)
+	}
+	if err := ensureColumn(db, "screen_time", "deleted_at", "INTEGER"); err != nil {
+		return fmt.Errorf("failed to add screen_time.deleted_at column: %w", err)
+	}
+	if err := ensureColumn(db, "hydration", "updated_at", "INTEGER NOT NULL DEFAULT 0"); err != nil {
+		return fmt.Errorf("failed to add hydration.updated_at column: %w", err)
+	}
+	if err := ensureColumn(db, "hydration", "deleted_at", "INTEGER"); err != nil {
+		return fmt.Errorf("failed to add hydration.deleted_at column: %w", err)
 	}
 
 	// Create indexes if they don't exist
 	indexes := []string{
 		`CREATE INDEX IF NOT EXISTS idx_meals_updated_at ON meals(updated_at)`,
 		`CREATE INDEX IF NOT EXISTS idx_meals_deleted_at ON meals(deleted_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_day_ratings_updated_at ON day_ratings(updated_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_day_ratings_deleted_at ON day_ratings(deleted_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_daily_checkins_updated_at ON daily_checkins(updated_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_daily_checkins_deleted_at ON daily_checkins(deleted_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_daily_metrics_deleted_at ON daily_metrics(deleted_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_screen_time_updated_at ON screen_time(updated_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_screen_time_deleted_at ON screen_time(deleted_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_hydration_updated_at ON hydration(updated_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_hydration_deleted_at ON hydration(deleted_at)`,
 	}
 	for _, idx := range indexes {
 		if _, err := db.Exec(idx); err != nil {
@@ -251,6 +284,26 @@ func runMigrations(db *sql.DB) error {
 	}
 
 	return nil
+}
+
+func ensureColumn(db *sql.DB, table, column, definition string) error {
+	row := db.QueryRow(
+		fmt.Sprintf(`SELECT COUNT(*) FROM pragma_table_info('%s') WHERE name=?`, table),
+		column,
+	)
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	_, err := db.Exec(
+		fmt.Sprintf(`ALTER TABLE %s ADD COLUMN %s %s`, table, column, definition),
+	)
+	return err
 }
 
 func (s *Storage) Close() error {
@@ -370,6 +423,7 @@ func (s *Storage) GetMealsByDate(dateStr string) ([]models.Meal, error) {
 		}
 		// Load images for this meal
 		m.Images, _ = s.GetImagesByMeal(m.ID)
+		s.applyMealCompatibilityFields(&m)
 		meals = append(meals, m)
 	}
 
@@ -407,6 +461,7 @@ func (s *Storage) GetRecentMeals(days int) ([]models.Meal, error) {
 			m.ServerID = serverID.Int64
 		}
 		m.Images, _ = s.GetImagesByMeal(m.ID)
+		s.applyMealCompatibilityFields(&m)
 		meals = append(meals, m)
 	}
 
@@ -440,6 +495,7 @@ func (s *Storage) GetMealByID(id int64) (*models.Meal, error) {
 		m.ServerID = serverID.Int64
 	}
 	m.Images, _ = s.GetImagesByMeal(m.ID)
+	s.applyMealCompatibilityFields(&m)
 	return &m, nil
 }
 
@@ -519,6 +575,7 @@ func (s *Storage) GetMealsSince(timestamp int64) ([]models.Meal, []int64, error)
 		// Only load images for non-deleted meals
 		if m.DeletedAt == nil {
 			m.Images, _ = s.GetImagesByMeal(m.ID)
+			s.applyMealCompatibilityFields(&m)
 		}
 		meals = append(meals, m)
 	}
@@ -770,11 +827,11 @@ func (s *Storage) SaveCheckin(c *models.DailyCheckin) error {
 
 	result, err := s.db.Exec(`
 		INSERT OR REPLACE INTO daily_checkins (
-			id, date, mood, energy, focus, stress, sleep_hours, sleep_quality, notes, created_at, updated_at
+			id, date, mood, energy, focus, stress, sleep_hours, sleep_quality, notes, created_at, updated_at, deleted_at
 		)
 		VALUES (
 			(SELECT id FROM daily_checkins WHERE date = ?),
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL
 		)
 	`, c.Date, c.Date, c.Mood, c.Energy, c.Focus, c.Stress, c.SleepHours, c.SleepQuality, c.Notes, createdAt, now)
 	if err != nil {
@@ -789,6 +846,7 @@ func (s *Storage) SaveCheckin(c *models.DailyCheckin) error {
 	c.ID = id
 	c.CreatedAt = createdAt
 	c.UpdatedAt = now
+	c.DeletedAt = nil
 	return nil
 }
 
@@ -801,11 +859,13 @@ func (s *Storage) GetCheckinByDate(dateStr string) (*models.DailyCheckin, error)
 	var sleepHours sql.NullFloat64
 	var sleepQuality sql.NullInt64
 	var notes sql.NullString
+	var deletedAt sql.NullInt64
 
 	err := s.db.QueryRow(`
-		SELECT id, date, mood, energy, focus, stress, sleep_hours, sleep_quality, notes, created_at, updated_at
+		SELECT id, date, mood, energy, focus, stress, sleep_hours, sleep_quality, notes, created_at, updated_at, deleted_at
 		FROM daily_checkins
-		WHERE date('1970-01-01', date || ' days') = ?
+		WHERE date(date / 1000, 'unixepoch') = ?
+		AND deleted_at IS NULL
 	`, dateStr).Scan(
 		&c.ID,
 		&c.Date,
@@ -818,6 +878,7 @@ func (s *Storage) GetCheckinByDate(dateStr string) (*models.DailyCheckin, error)
 		&notes,
 		&c.CreatedAt,
 		&c.UpdatedAt,
+		&deletedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -852,17 +913,21 @@ func (s *Storage) GetCheckinByDate(dateStr string) (*models.DailyCheckin, error)
 	if notes.Valid {
 		c.Notes = &notes.String
 	}
+	if deletedAt.Valid {
+		c.DeletedAt = &deletedAt.Int64
+	}
 
 	return &c, nil
 }
 
 func (s *Storage) GetRecentCheckins(days int) ([]models.DailyCheckin, error) {
 	rows, err := s.db.Query(`
-		SELECT id, date, mood, energy, focus, stress, sleep_hours, sleep_quality, notes, created_at, updated_at
+		SELECT id, date, mood, energy, focus, stress, sleep_hours, sleep_quality, notes, created_at, updated_at, deleted_at
 		FROM daily_checkins
-		WHERE date >= CAST(julianday('now', 'start of day') - julianday('1970-01-01') AS INTEGER) - ?
+		WHERE date >= strftime('%s', 'now', ? || ' days') * 1000
+		AND deleted_at IS NULL
 		ORDER BY date DESC
-	`, days)
+	`, fmt.Sprintf("-%d", days))
 	if err != nil {
 		return nil, err
 	}
@@ -878,6 +943,7 @@ func (s *Storage) GetRecentCheckins(days int) ([]models.DailyCheckin, error) {
 		var sleepHours sql.NullFloat64
 		var sleepQuality sql.NullInt64
 		var notes sql.NullString
+		var deletedAt sql.NullInt64
 		if err := rows.Scan(
 			&c.ID,
 			&c.Date,
@@ -890,6 +956,7 @@ func (s *Storage) GetRecentCheckins(days int) ([]models.DailyCheckin, error) {
 			&notes,
 			&c.CreatedAt,
 			&c.UpdatedAt,
+			&deletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -919,6 +986,9 @@ func (s *Storage) GetRecentCheckins(days int) ([]models.DailyCheckin, error) {
 		if notes.Valid {
 			c.Notes = &notes.String
 		}
+		if deletedAt.Valid {
+			c.DeletedAt = &deletedAt.Int64
+		}
 		checkins = append(checkins, c)
 	}
 
@@ -926,6 +996,112 @@ func (s *Storage) GetRecentCheckins(days int) ([]models.DailyCheckin, error) {
 		checkins = []models.DailyCheckin{}
 	}
 	return checkins, nil
+}
+
+func (s *Storage) DeleteCheckin(date int64) error {
+	now := time.Now().UnixMilli()
+	result, err := s.db.Exec(`
+		UPDATE daily_checkins
+		SET deleted_at = ?, updated_at = ?
+		WHERE date = ? AND deleted_at IS NULL
+	`, now, now, date)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (s *Storage) GetCheckinsSince(timestamp int64) ([]models.DailyCheckin, []int64, error) {
+	rows, err := s.db.Query(`
+		SELECT id, date, mood, energy, focus, stress, sleep_hours, sleep_quality, notes, created_at, updated_at, deleted_at
+		FROM daily_checkins
+		WHERE updated_at > ?
+		ORDER BY updated_at ASC
+	`, timestamp)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var checkins []models.DailyCheckin
+	var deletedDates []int64
+
+	for rows.Next() {
+		var c models.DailyCheckin
+		var mood sql.NullInt64
+		var energy sql.NullInt64
+		var focus sql.NullInt64
+		var stress sql.NullInt64
+		var sleepHours sql.NullFloat64
+		var sleepQuality sql.NullInt64
+		var notes sql.NullString
+		var deletedAt sql.NullInt64
+		if err := rows.Scan(
+			&c.ID,
+			&c.Date,
+			&mood,
+			&energy,
+			&focus,
+			&stress,
+			&sleepHours,
+			&sleepQuality,
+			&notes,
+			&c.CreatedAt,
+			&c.UpdatedAt,
+			&deletedAt,
+		); err != nil {
+			return nil, nil, err
+		}
+		if mood.Valid {
+			value := int(mood.Int64)
+			c.Mood = &value
+		}
+		if energy.Valid {
+			value := int(energy.Int64)
+			c.Energy = &value
+		}
+		if focus.Valid {
+			value := int(focus.Int64)
+			c.Focus = &value
+		}
+		if stress.Valid {
+			value := int(stress.Int64)
+			c.Stress = &value
+		}
+		if sleepHours.Valid {
+			c.SleepHours = &sleepHours.Float64
+		}
+		if sleepQuality.Valid {
+			value := int(sleepQuality.Int64)
+			c.SleepQuality = &value
+		}
+		if notes.Valid {
+			c.Notes = &notes.String
+		}
+		if deletedAt.Valid {
+			c.DeletedAt = &deletedAt.Int64
+			deletedDates = append(deletedDates, c.Date)
+		}
+		checkins = append(checkins, c)
+	}
+
+	if checkins == nil {
+		checkins = []models.DailyCheckin{}
+	}
+	if deletedDates == nil {
+		deletedDates = []int64{}
+	}
+
+	return checkins, deletedDates, nil
 }
 
 func (s *Storage) GetCheckinStats(days int) (float64, float64, float64, float64, float64, int, error) {
@@ -945,8 +1121,9 @@ func (s *Storage) GetCheckinStats(days int) (float64, float64, float64, float64,
 			AVG(sleep_hours),
 			COUNT(*)
 		FROM daily_checkins
-		WHERE date >= CAST(julianday('now', 'start of day') - julianday('1970-01-01') AS INTEGER) - ?
-	`, days).Scan(&avgMood, &avgEnergy, &avgFocus, &avgStress, &avgSleep, &count)
+		WHERE date >= strftime('%s', 'now', ? || ' days') * 1000
+		AND deleted_at IS NULL
+	`, fmt.Sprintf("-%d", days)).Scan(&avgMood, &avgEnergy, &avgFocus, &avgStress, &avgSleep, &count)
 	if err != nil {
 		return 0, 0, 0, 0, 0, 0, err
 	}
@@ -973,6 +1150,142 @@ func (s *Storage) GetCheckinStats(days int) (float64, float64, float64, float64,
 	}
 
 	return mood, energy, focus, stress, sleep, count, nil
+}
+
+// --- Daily Metrics ---
+
+func (s *Storage) SaveDailyMetrics(m *models.DailyMetrics) error {
+	now := time.Now().UnixMilli()
+	_, err := s.db.Exec(`
+		INSERT INTO daily_metrics (date, water_liters, exercise_done, exercise_note, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, ?, NULL)
+		ON CONFLICT(date)
+		DO UPDATE SET
+			water_liters = excluded.water_liters,
+			exercise_done = excluded.exercise_done,
+			exercise_note = excluded.exercise_note,
+			updated_at = excluded.updated_at,
+			deleted_at = NULL
+	`, m.Date, m.WaterLiters, nullableBoolToInt(m.ExerciseDone), m.ExerciseNote, now)
+	if err != nil {
+		return err
+	}
+
+	m.UpdatedAt = now
+	m.DeletedAt = nil
+	return nil
+}
+
+func (s *Storage) GetDailyMetricsByDate(dateStr string) (*models.DailyMetrics, error) {
+	var m models.DailyMetrics
+	var waterLiters sql.NullFloat64
+	var exerciseDone sql.NullInt64
+	var exerciseNote sql.NullString
+	var deletedAt sql.NullInt64
+
+	err := s.db.QueryRow(`
+		SELECT date, water_liters, exercise_done, exercise_note, updated_at, deleted_at
+		FROM daily_metrics
+		WHERE date(date / 1000, 'unixepoch') = ?
+		AND deleted_at IS NULL
+	`, dateStr).Scan(&m.Date, &waterLiters, &exerciseDone, &exerciseNote, &m.UpdatedAt, &deletedAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if waterLiters.Valid {
+		m.WaterLiters = &waterLiters.Float64
+	}
+	if exerciseDone.Valid {
+		value := exerciseDone.Int64 == 1
+		m.ExerciseDone = &value
+	}
+	if exerciseNote.Valid {
+		m.ExerciseNote = &exerciseNote.String
+	}
+	if deletedAt.Valid {
+		m.DeletedAt = &deletedAt.Int64
+	}
+
+	return &m, nil
+}
+
+func (s *Storage) DeleteDailyMetrics(date int64) error {
+	now := time.Now().UnixMilli()
+	result, err := s.db.Exec(`
+		UPDATE daily_metrics
+		SET deleted_at = ?, updated_at = ?
+		WHERE date = ? AND deleted_at IS NULL
+	`, now, now, date)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (s *Storage) GetDailyMetricsSince(timestamp int64) ([]models.DailyMetrics, []int64, error) {
+	rows, err := s.db.Query(`
+		SELECT date, water_liters, exercise_done, exercise_note, updated_at, deleted_at
+		FROM daily_metrics
+		WHERE updated_at > ?
+		ORDER BY updated_at ASC
+	`, timestamp)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var metrics []models.DailyMetrics
+	var deletedDates []int64
+
+	for rows.Next() {
+		var m models.DailyMetrics
+		var waterLiters sql.NullFloat64
+		var exerciseDone sql.NullInt64
+		var exerciseNote sql.NullString
+		var deletedAt sql.NullInt64
+
+		if err := rows.Scan(&m.Date, &waterLiters, &exerciseDone, &exerciseNote, &m.UpdatedAt, &deletedAt); err != nil {
+			return nil, nil, err
+		}
+		if waterLiters.Valid {
+			m.WaterLiters = &waterLiters.Float64
+		}
+		if exerciseDone.Valid {
+			value := exerciseDone.Int64 == 1
+			m.ExerciseDone = &value
+		}
+		if exerciseNote.Valid {
+			m.ExerciseNote = &exerciseNote.String
+		}
+		if deletedAt.Valid {
+			m.DeletedAt = &deletedAt.Int64
+			deletedDates = append(deletedDates, m.Date)
+		}
+
+		metrics = append(metrics, m)
+	}
+
+	if metrics == nil {
+		metrics = []models.DailyMetrics{}
+	}
+	if deletedDates == nil {
+		deletedDates = []int64{}
+	}
+
+	return metrics, deletedDates, nil
 }
 
 func (s *Storage) GetBodyMetricsSince(timestamp int64) ([]models.BodyMetric, []int64, error) {
@@ -1498,20 +1811,26 @@ func (s *Storage) UpsertScreenTime(st *models.ScreenTime, apps []models.ScreenTi
 	defer tx.Rollback()
 
 	if _, err := tx.Exec(`
-		INSERT INTO screen_time (date, total_ms, pickups, created_at)
-		VALUES (?, ?, ?, ?)
+		INSERT INTO screen_time (date, total_ms, pickups, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, ?, NULL)
 		ON CONFLICT(date)
-		DO UPDATE SET total_ms = excluded.total_ms, pickups = excluded.pickups
-	`, st.Date, st.TotalMs, st.Pickups, now); err != nil {
+		DO UPDATE SET total_ms = excluded.total_ms, pickups = excluded.pickups, updated_at = excluded.updated_at, deleted_at = NULL
+	`, st.Date, st.TotalMs, st.Pickups, now, now); err != nil {
 		return err
 	}
 
+	var deletedAt sql.NullInt64
 	if err := tx.QueryRow(`
-		SELECT id, created_at
+		SELECT id, created_at, updated_at, deleted_at
 		FROM screen_time
 		WHERE date = ?
-	`, st.Date).Scan(&st.ID, &st.CreatedAt); err != nil {
+	`, st.Date).Scan(&st.ID, &st.CreatedAt, &st.UpdatedAt, &deletedAt); err != nil {
 		return err
+	}
+	if deletedAt.Valid {
+		st.DeletedAt = &deletedAt.Int64
+	} else {
+		st.DeletedAt = nil
 	}
 
 	if _, err := tx.Exec(`DELETE FROM screen_time_apps WHERE screen_time_id = ?`, st.ID); err != nil {
@@ -1540,18 +1859,21 @@ func (s *Storage) UpsertScreenTime(st *models.ScreenTime, apps []models.ScreenTi
 		return err
 	}
 
+	st.Apps = apps
 	return nil
 }
 
 func (s *Storage) GetScreenTimeByDate(dateStr string) (*models.ScreenTime, []models.ScreenTimeApp, error) {
 	var st models.ScreenTime
 	var pickups sql.NullInt64
+	var deletedAt sql.NullInt64
 
 	err := s.db.QueryRow(`
-		SELECT id, date, total_ms, pickups, created_at
+		SELECT id, date, total_ms, pickups, created_at, updated_at, deleted_at
 		FROM screen_time
 		WHERE date(date / 1000, 'unixepoch') = ?
-	`, dateStr).Scan(&st.ID, &st.Date, &st.TotalMs, &pickups, &st.CreatedAt)
+		AND deleted_at IS NULL
+	`, dateStr).Scan(&st.ID, &st.Date, &st.TotalMs, &pickups, &st.CreatedAt, &st.UpdatedAt, &deletedAt)
 	if err == sql.ErrNoRows {
 		return nil, []models.ScreenTimeApp{}, nil
 	}
@@ -1561,6 +1883,9 @@ func (s *Storage) GetScreenTimeByDate(dateStr string) (*models.ScreenTime, []mod
 	if pickups.Valid {
 		value := int(pickups.Int64)
 		st.Pickups = &value
+	}
+	if deletedAt.Valid {
+		st.DeletedAt = &deletedAt.Int64
 	}
 
 	rows, err := s.db.Query(`
@@ -1586,14 +1911,16 @@ func (s *Storage) GetScreenTimeByDate(dateStr string) (*models.ScreenTime, []mod
 	if apps == nil {
 		apps = []models.ScreenTimeApp{}
 	}
+	st.Apps = apps
 	return &st, apps, nil
 }
 
 func (s *Storage) GetRecentScreenTime(days int) ([]models.ScreenTime, error) {
 	rows, err := s.db.Query(`
-		SELECT id, date, total_ms, pickups, created_at
+		SELECT id, date, total_ms, pickups, created_at, updated_at, deleted_at
 		FROM screen_time
 		WHERE date >= strftime('%s', 'now', ? || ' days') * 1000
+		AND deleted_at IS NULL
 		ORDER BY date DESC
 	`, fmt.Sprintf("-%d", days))
 	if err != nil {
@@ -1605,12 +1932,16 @@ func (s *Storage) GetRecentScreenTime(days int) ([]models.ScreenTime, error) {
 	for rows.Next() {
 		var st models.ScreenTime
 		var pickups sql.NullInt64
-		if err := rows.Scan(&st.ID, &st.Date, &st.TotalMs, &pickups, &st.CreatedAt); err != nil {
+		var deletedAt sql.NullInt64
+		if err := rows.Scan(&st.ID, &st.Date, &st.TotalMs, &pickups, &st.CreatedAt, &st.UpdatedAt, &deletedAt); err != nil {
 			return nil, err
 		}
 		if pickups.Valid {
 			value := int(pickups.Int64)
 			st.Pickups = &value
+		}
+		if deletedAt.Valid {
+			st.DeletedAt = &deletedAt.Int64
 		}
 		entries = append(entries, st)
 	}
@@ -1621,12 +1952,111 @@ func (s *Storage) GetRecentScreenTime(days int) ([]models.ScreenTime, error) {
 	return entries, nil
 }
 
+func (s *Storage) DeleteScreenTime(date int64) error {
+	now := time.Now().UnixMilli()
+	result, err := s.db.Exec(`
+		UPDATE screen_time
+		SET deleted_at = ?, updated_at = ?
+		WHERE date = ? AND deleted_at IS NULL
+	`, now, now, date)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (s *Storage) GetScreenTimeSince(timestamp int64) ([]models.ScreenTime, []int64, error) {
+	rows, err := s.db.Query(`
+		SELECT id, date, total_ms, pickups, created_at, updated_at, deleted_at
+		FROM screen_time
+		WHERE updated_at > ?
+		ORDER BY updated_at ASC
+	`, timestamp)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var entries []models.ScreenTime
+	var deletedDates []int64
+
+	for rows.Next() {
+		var st models.ScreenTime
+		var pickups sql.NullInt64
+		var deletedAt sql.NullInt64
+		if err := rows.Scan(&st.ID, &st.Date, &st.TotalMs, &pickups, &st.CreatedAt, &st.UpdatedAt, &deletedAt); err != nil {
+			return nil, nil, err
+		}
+		if pickups.Valid {
+			value := int(pickups.Int64)
+			st.Pickups = &value
+		}
+		if deletedAt.Valid {
+			st.DeletedAt = &deletedAt.Int64
+			deletedDates = append(deletedDates, st.Date)
+		} else {
+			apps, err := s.GetScreenTimeAppsByID(st.ID)
+			if err != nil {
+				return nil, nil, err
+			}
+			st.Apps = apps
+		}
+		entries = append(entries, st)
+	}
+
+	if entries == nil {
+		entries = []models.ScreenTime{}
+	}
+	if deletedDates == nil {
+		deletedDates = []int64{}
+	}
+
+	return entries, deletedDates, nil
+}
+
+func (s *Storage) GetScreenTimeAppsByID(screenTimeID int64) ([]models.ScreenTimeApp, error) {
+	rows, err := s.db.Query(`
+		SELECT id, screen_time_id, package_name, app_name, duration_ms
+		FROM screen_time_apps
+		WHERE screen_time_id = ?
+		ORDER BY duration_ms DESC, id ASC
+	`, screenTimeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var apps []models.ScreenTimeApp
+	for rows.Next() {
+		var app models.ScreenTimeApp
+		if err := rows.Scan(&app.ID, &app.ScreenTimeID, &app.PackageName, &app.AppName, &app.DurationMs); err != nil {
+			return nil, err
+		}
+		apps = append(apps, app)
+	}
+
+	if apps == nil {
+		apps = []models.ScreenTimeApp{}
+	}
+	return apps, nil
+}
+
 func (s *Storage) GetScreenTimeStats(days int) (int64, int, map[string]int64, error) {
 	var avgDailyMs sql.NullFloat64
 	if err := s.db.QueryRow(`
 		SELECT AVG(total_ms)
 		FROM screen_time
 		WHERE date >= strftime('%s', 'now', ? || ' days') * 1000
+		AND deleted_at IS NULL
 	`, fmt.Sprintf("-%d", days)).Scan(&avgDailyMs); err != nil {
 		return 0, 0, nil, err
 	}
@@ -1636,6 +2066,7 @@ func (s *Storage) GetScreenTimeStats(days int) (int64, int, map[string]int64, er
 		SELECT COALESCE(SUM(pickups), 0)
 		FROM screen_time
 		WHERE date >= strftime('%s', 'now', ? || ' days') * 1000
+		AND deleted_at IS NULL
 	`, fmt.Sprintf("-%d", days)).Scan(&totalPickups); err != nil {
 		return 0, 0, nil, err
 	}
@@ -1645,6 +2076,7 @@ func (s *Storage) GetScreenTimeStats(days int) (int64, int, map[string]int64, er
 		FROM screen_time_apps sta
 		INNER JOIN screen_time st ON st.id = sta.screen_time_id
 		WHERE st.date >= strftime('%s', 'now', ? || ' days') * 1000
+		AND st.deleted_at IS NULL
 		GROUP BY sta.app_name
 		ORDER BY SUM(sta.duration_ms) DESC, sta.app_name ASC
 	`, fmt.Sprintf("-%d", days))
@@ -1672,9 +2104,9 @@ func (s *Storage) SaveHydration(h *models.Hydration) error {
 	now := time.Now().UnixMilli()
 
 	result, err := s.db.Exec(`
-		INSERT INTO hydration (date, amount_ml, created_at)
-		VALUES (?, ?, ?)
-	`, h.Date, h.AmountMl, now)
+		INSERT INTO hydration (date, amount_ml, created_at, updated_at, deleted_at)
+		VALUES (?, ?, ?, ?, NULL)
+	`, h.Date, h.AmountMl, now, now)
 	if err != nil {
 		return err
 	}
@@ -1685,14 +2117,17 @@ func (s *Storage) SaveHydration(h *models.Hydration) error {
 	}
 	h.ID = id
 	h.CreatedAt = now
+	h.UpdatedAt = now
+	h.DeletedAt = nil
 	return nil
 }
 
 func (s *Storage) GetHydrationByDate(dateStr string) ([]models.Hydration, error) {
 	rows, err := s.db.Query(`
-		SELECT id, date, amount_ml, created_at
+		SELECT id, date, amount_ml, created_at, updated_at, deleted_at
 		FROM hydration
-		WHERE date(date, 'unixepoch') = ?
+		WHERE date(date / 1000, 'unixepoch') = ?
+		AND deleted_at IS NULL
 		ORDER BY created_at ASC
 	`, dateStr)
 	if err != nil {
@@ -1703,8 +2138,12 @@ func (s *Storage) GetHydrationByDate(dateStr string) ([]models.Hydration, error)
 	var entries []models.Hydration
 	for rows.Next() {
 		var h models.Hydration
-		if err := rows.Scan(&h.ID, &h.Date, &h.AmountMl, &h.CreatedAt); err != nil {
+		var deletedAt sql.NullInt64
+		if err := rows.Scan(&h.ID, &h.Date, &h.AmountMl, &h.CreatedAt, &h.UpdatedAt, &deletedAt); err != nil {
 			return nil, err
+		}
+		if deletedAt.Valid {
+			h.DeletedAt = &deletedAt.Int64
 		}
 		entries = append(entries, h)
 	}
@@ -1717,9 +2156,10 @@ func (s *Storage) GetHydrationByDate(dateStr string) ([]models.Hydration, error)
 
 func (s *Storage) GetRecentHydration(days int) ([]models.Hydration, error) {
 	rows, err := s.db.Query(`
-		SELECT id, date, amount_ml, created_at
+		SELECT id, date, amount_ml, created_at, updated_at, deleted_at
 		FROM hydration
-		WHERE date >= strftime('%s', 'now', ? || ' days')
+		WHERE date >= strftime('%s', 'now', ? || ' days') * 1000
+		AND deleted_at IS NULL
 		ORDER BY date DESC, created_at DESC
 	`, fmt.Sprintf("-%d", days))
 	if err != nil {
@@ -1730,8 +2170,12 @@ func (s *Storage) GetRecentHydration(days int) ([]models.Hydration, error) {
 	var entries []models.Hydration
 	for rows.Next() {
 		var h models.Hydration
-		if err := rows.Scan(&h.ID, &h.Date, &h.AmountMl, &h.CreatedAt); err != nil {
+		var deletedAt sql.NullInt64
+		if err := rows.Scan(&h.ID, &h.Date, &h.AmountMl, &h.CreatedAt, &h.UpdatedAt, &deletedAt); err != nil {
 			return nil, err
+		}
+		if deletedAt.Valid {
+			h.DeletedAt = &deletedAt.Int64
 		}
 		entries = append(entries, h)
 	}
@@ -1743,9 +2187,10 @@ func (s *Storage) GetRecentHydration(days int) ([]models.Hydration, error) {
 }
 
 func (s *Storage) DeleteHydration(id int64) error {
+	now := time.Now().UnixMilli()
 	result, err := s.db.Exec(`
-		DELETE FROM hydration WHERE id = ?
-	`, id)
+		UPDATE hydration SET deleted_at = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL
+	`, now, now, id)
 	if err != nil {
 		return err
 	}
@@ -1759,6 +2204,44 @@ func (s *Storage) DeleteHydration(id int64) error {
 	}
 
 	return nil
+}
+
+func (s *Storage) GetHydrationSince(timestamp int64) ([]models.Hydration, []int64, error) {
+	rows, err := s.db.Query(`
+		SELECT id, date, amount_ml, created_at, updated_at, deleted_at
+		FROM hydration
+		WHERE updated_at > ?
+		ORDER BY updated_at ASC
+	`, timestamp)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var entries []models.Hydration
+	var deletedIDs []int64
+
+	for rows.Next() {
+		var h models.Hydration
+		var deletedAt sql.NullInt64
+		if err := rows.Scan(&h.ID, &h.Date, &h.AmountMl, &h.CreatedAt, &h.UpdatedAt, &deletedAt); err != nil {
+			return nil, nil, err
+		}
+		if deletedAt.Valid {
+			h.DeletedAt = &deletedAt.Int64
+			deletedIDs = append(deletedIDs, h.ID)
+		}
+		entries = append(entries, h)
+	}
+
+	if entries == nil {
+		entries = []models.Hydration{}
+	}
+	if deletedIDs == nil {
+		deletedIDs = []int64{}
+	}
+
+	return entries, deletedIDs, nil
 }
 
 // --- Images ---
@@ -1809,26 +2292,145 @@ func (s *Storage) SaveImageFile(mealID int64, filename string, data []byte) erro
 	return os.WriteFile(filepath.Join(dir, filename), data, 0644)
 }
 
+func (s *Storage) DeleteImage(mealID int64, filename string) error {
+	result, err := s.db.Exec(
+		`DELETE FROM meal_images WHERE meal_id = ? AND filename = ?`,
+		mealID,
+		filename,
+	)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	imagePath := s.GetImagePath(mealID, filename)
+	if err := os.Remove(imagePath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+
+	return nil
+}
+
 // --- Day Ratings ---
 
 func (s *Storage) SaveDayRating(r *models.DayRating) error {
-	_, err := s.db.Exec(
-		"INSERT OR REPLACE INTO day_ratings (date, score) VALUES (?, ?)",
-		r.Date, r.Score,
-	)
+	now := time.Now().UnixMilli()
+	_, err := s.db.Exec(`
+		INSERT INTO day_ratings (date, score, updated_at, deleted_at)
+		VALUES (?, ?, ?, NULL)
+		ON CONFLICT(date)
+		DO UPDATE SET score = excluded.score, updated_at = excluded.updated_at, deleted_at = NULL
+	`, r.Date, r.Score, now)
+	r.UpdatedAt = now
+	r.DeletedAt = nil
 	return err
+}
+
+func (s *Storage) applyMealCompatibilityFields(m *models.Meal) {
+	m.UpdatedAtCompat = m.UpdatedAt
+	if len(m.Images) == 0 {
+		return
+	}
+
+	imagePath := m.Images[0].URL
+	m.ImagePath = &imagePath
+}
+
+func nullableBoolToInt(value *bool) interface{} {
+	if value == nil {
+		return nil
+	}
+	if *value {
+		return 1
+	}
+	return 0
 }
 
 func (s *Storage) GetDayRating(date int64) (*models.DayRating, error) {
 	var r models.DayRating
-	err := s.db.QueryRow("SELECT date, score FROM day_ratings WHERE date = ?", date).Scan(&r.Date, &r.Score)
+	var deletedAt sql.NullInt64
+	err := s.db.QueryRow(`
+		SELECT date, score, updated_at, deleted_at
+		FROM day_ratings
+		WHERE date = ? AND deleted_at IS NULL
+	`, date).Scan(&r.Date, &r.Score, &r.UpdatedAt, &deletedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
+	if deletedAt.Valid {
+		r.DeletedAt = &deletedAt.Int64
+	}
 	return &r, nil
+}
+
+func (s *Storage) DeleteDayRating(date int64) error {
+	now := time.Now().UnixMilli()
+	result, err := s.db.Exec(`
+		UPDATE day_ratings
+		SET deleted_at = ?, updated_at = ?
+		WHERE date = ? AND deleted_at IS NULL
+	`, now, now, date)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func (s *Storage) GetDayRatingsSince(timestamp int64) ([]models.DayRating, []int64, error) {
+	rows, err := s.db.Query(`
+		SELECT date, score, updated_at, deleted_at
+		FROM day_ratings
+		WHERE updated_at > ?
+		ORDER BY updated_at ASC
+	`, timestamp)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var ratings []models.DayRating
+	var deletedDates []int64
+
+	for rows.Next() {
+		var rating models.DayRating
+		var deletedAt sql.NullInt64
+		if err := rows.Scan(&rating.Date, &rating.Score, &rating.UpdatedAt, &deletedAt); err != nil {
+			return nil, nil, err
+		}
+		if deletedAt.Valid {
+			rating.DeletedAt = &deletedAt.Int64
+			deletedDates = append(deletedDates, rating.Date)
+		}
+		ratings = append(ratings, rating)
+	}
+
+	if ratings == nil {
+		ratings = []models.DayRating{}
+	}
+	if deletedDates == nil {
+		deletedDates = []int64{}
+	}
+
+	return ratings, deletedDates, nil
 }
 
 // --- Stats ---
@@ -1866,7 +2468,9 @@ func (s *Storage) GetStats() (*models.Stats, error) {
 
 	// Average rating
 	var avgRating sql.NullFloat64
-	if err := s.db.QueryRow("SELECT AVG(score) FROM day_ratings").Scan(&avgRating); err != nil && err != sql.ErrNoRows {
+	if err := s.db.QueryRow(
+		"SELECT AVG(score) FROM day_ratings WHERE deleted_at IS NULL",
+	).Scan(&avgRating); err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
 	if avgRating.Valid {
@@ -1899,8 +2503,6 @@ func (s *Storage) GetStats() (*models.Stats, error) {
 	startOfWeekMillis := startOfWeek.UnixMilli()
 	startOfMonthMillis := startOfMonth.UnixMilli()
 	startOfSevenDayWindowMillis := startOfSevenDayWindow.UnixMilli()
-	startOfSevenDayWindowSeconds := startOfSevenDayWindow.Unix()
-	startOfSevenDayWindowEpochDay := int(startOfSevenDayWindow.Sub(time.Unix(0, 0).UTC()) / (24 * time.Hour))
 
 	var latestWeight sql.NullFloat64
 	if err := s.db.QueryRow(`
@@ -1978,6 +2580,7 @@ func (s *Storage) GetStats() (*models.Stats, error) {
 		SELECT AVG(total_ms)
 		FROM screen_time
 		WHERE date >= ?
+		AND deleted_at IS NULL
 	`, startOfSevenDayWindowMillis).Scan(&avgDailyScreenTimeMs); err != nil {
 		return nil, err
 	}
@@ -1992,7 +2595,8 @@ func (s *Storage) GetStats() (*models.Stats, error) {
 		SELECT AVG(mood), AVG(energy), AVG(sleep_hours)
 		FROM daily_checkins
 		WHERE date >= ?
-	`, startOfSevenDayWindowEpochDay).Scan(&avgMood, &avgEnergy, &avgSleepHours); err != nil {
+		AND deleted_at IS NULL
+	`, startOfSevenDayWindowMillis).Scan(&avgMood, &avgEnergy, &avgSleepHours); err != nil {
 		return nil, err
 	}
 	if avgMood.Valid {
@@ -2012,9 +2616,10 @@ func (s *Storage) GetStats() (*models.Stats, error) {
 			SELECT SUM(amount_ml) AS daily_total
 			FROM hydration
 			WHERE date >= ?
-			GROUP BY date(date, 'unixepoch')
+			AND deleted_at IS NULL
+			GROUP BY date(date / 1000, 'unixepoch')
 		)
-	`, startOfSevenDayWindowSeconds).Scan(&avgHydrationMl); err != nil {
+	`, startOfSevenDayWindowMillis).Scan(&avgHydrationMl); err != nil {
 		return nil, err
 	}
 	if avgHydrationMl.Valid {

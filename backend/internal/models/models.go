@@ -3,14 +3,16 @@ package models
 import "time"
 
 type Meal struct {
-	ID          int64       `json:"id,omitempty"`
-	Slot        string      `json:"slot"`
-	Date        int64       `json:"date"` // milliseconds since epoch
-	Description *string     `json:"description,omitempty"`
-	Images      []MealImage `json:"images,omitempty"`
-	UpdatedAt   int64       `json:"updatedAt"`
-	DeletedAt   *int64      `json:"deletedAt,omitempty"`
-	ServerID    int64       `json:"serverId,omitempty"` // Original ID before migration
+	ID              int64       `json:"id,omitempty"`
+	Slot            string      `json:"slot"`
+	Date            int64       `json:"date"` // milliseconds since epoch
+	Description     *string     `json:"description,omitempty"`
+	Images          []MealImage `json:"images,omitempty"`
+	ImagePath       *string     `json:"imagePath,omitempty"`
+	UpdatedAt       int64       `json:"updatedAt"`
+	UpdatedAtCompat int64       `json:"updated_at,omitempty"`
+	DeletedAt       *int64      `json:"deletedAt,omitempty"`
+	ServerID        int64       `json:"serverId,omitempty"` // Original ID before migration
 }
 
 type MealImage struct {
@@ -32,10 +34,21 @@ type BodyMetric struct {
 }
 
 type Hydration struct {
-	ID        int64 `json:"id,omitempty"`
-	Date      int64 `json:"date"`
-	AmountMl  int   `json:"amountMl"`
-	CreatedAt int64 `json:"createdAt"`
+	ID        int64  `json:"id,omitempty"`
+	Date      int64  `json:"date"`
+	AmountMl  int    `json:"amountMl"`
+	CreatedAt int64  `json:"createdAt"`
+	UpdatedAt int64  `json:"updatedAt"`
+	DeletedAt *int64 `json:"deletedAt,omitempty"`
+}
+
+type DailyMetrics struct {
+	Date         int64    `json:"date"`
+	WaterLiters  *float64 `json:"waterLiters,omitempty"`
+	ExerciseDone *bool    `json:"exerciseDone,omitempty"`
+	ExerciseNote *string  `json:"exerciseNote,omitempty"`
+	UpdatedAt    int64    `json:"updatedAt"`
+	DeletedAt    *int64   `json:"deletedAt,omitempty"`
 }
 
 type Workout struct {
@@ -57,11 +70,14 @@ type Workout struct {
 }
 
 type ScreenTime struct {
-	ID        int64 `json:"id,omitempty"`
-	Date      int64 `json:"date"`
-	TotalMs   int64 `json:"totalMs"`
-	Pickups   *int  `json:"pickups,omitempty"`
-	CreatedAt int64 `json:"createdAt"`
+	ID        int64           `json:"id,omitempty"`
+	Date      int64           `json:"date"`
+	TotalMs   int64           `json:"totalMs"`
+	Pickups   *int            `json:"pickups,omitempty"`
+	CreatedAt int64           `json:"createdAt"`
+	UpdatedAt int64           `json:"updatedAt"`
+	DeletedAt *int64          `json:"deletedAt,omitempty"`
+	Apps      []ScreenTimeApp `json:"apps,omitempty"`
 }
 
 type ScreenTimeApp struct {
@@ -74,7 +90,7 @@ type ScreenTimeApp struct {
 
 type DailyCheckin struct {
 	ID           int64    `json:"id,omitempty"`
-	Date         int64    `json:"date"` // epoch day (date only, no time)
+	Date         int64    `json:"date"` // milliseconds since epoch (date-only values are normalized by the client)
 	Mood         *int     `json:"mood,omitempty"`
 	Energy       *int     `json:"energy,omitempty"`
 	Focus        *int     `json:"focus,omitempty"`
@@ -84,11 +100,14 @@ type DailyCheckin struct {
 	Notes        *string  `json:"notes,omitempty"`
 	CreatedAt    int64    `json:"createdAt"`
 	UpdatedAt    int64    `json:"updatedAt"`
+	DeletedAt    *int64   `json:"deletedAt,omitempty"`
 }
 
 type DayRating struct {
-	Date  int64 `json:"date"` // epoch day (date only, no time)
-	Score int   `json:"score"`
+	Date      int64  `json:"date"` // milliseconds since epoch (date-only values are normalized by the client)
+	Score     int    `json:"score"`
+	UpdatedAt int64  `json:"updatedAt"`
+	DeletedAt *int64 `json:"deletedAt,omitempty"`
 }
 
 type Stats struct {
@@ -120,13 +139,15 @@ var ValidSlots = map[string]bool{
 }
 
 var ValidWorkoutTypes = map[string]bool{
-	"run":    true,
-	"cycle":  true,
-	"gym":    true,
-	"swim":   true,
-	"walk":   true,
-	"hiking": true,
-	"other":  true,
+	"run":         true,
+	"cycle":       true,
+	"badminton":   true,
+	"gym":         true,
+	"swim":        true,
+	"walk":        true,
+	"hiking":      true,
+	"windsurfing": true,
+	"other":       true,
 }
 
 func (m *Meal) Validate() bool {

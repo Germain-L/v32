@@ -10,7 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize sync service if enabled
-  if (SyncConfig.enabled) {
+  if (SyncConfig.enabled && SyncConfig.hasCredentials) {
     debugPrint('[MAIN] Initializing sync service: ${SyncConfig.baseUrl}');
     try {
       SyncService.init(

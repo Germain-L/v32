@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.3 — 2026-03-27
+
+- Completed backend/client sync coverage for workouts, body metrics, hydration, daily check-ins, screen time, day ratings, and daily metrics
+- Added pull-by-since and delete support across the remaining synced entities
+- Added durable queued retries for non-meal deletes and date-keyed sync operations
+- Added queued primary and gallery meal image upload/delete handling
+- Removed hard-coded sync credentials; release builds now require `--dart-define` values to enable sync
+
+---
+
 ## 2.0.0 — 2026-03-27
 
 Major expansion: from meal tracker to full health & wellness app.

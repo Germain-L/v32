@@ -1,5 +1,6 @@
 import '../models/meal_image.dart';
 import '../services/database_service.dart';
+import '../services/sync_service.dart';
 
 class MealImageRepository {
   Future<List<MealImage>> getImagesForMeal(int mealId) async {
@@ -26,19 +27,75 @@ class MealImageRepository {
     final id = await db.insert('meal_images', image.toMap()..remove('id'));
     await DatabaseService.notifyChange(table: 'meal_images');
 
-    return image.copyWith(id: id);
+    final saved = image.copyWith(id: id);
+
+    if (SyncService.isInitialized) {
+      await SyncService.instance.queueUploadMealImage(mealId, id, imagePath);
+    }
+
+    return saved;
   }
 
   Future<void> deleteImage(int imageId) async {
     final db = await DatabaseService.database;
+    String? remoteUrl;
+    if (SyncService.isInitialized) {
+      final existing = await db.query(
+        'meal_images',
+        columns: ['remote_url'],
+        where: 'id = ?',
+        whereArgs: [imageId],
+        limit: 1,
+      );
+      if (existing.isNotEmpty) {
+        remoteUrl = existing.first['remote_url'] as String?;
+      }
+    }
+
     await db.delete('meal_images', where: 'id = ?', whereArgs: [imageId]);
     await DatabaseService.notifyChange(table: 'meal_images');
+
+    if (remoteUrl != null && SyncService.isInitialized) {
+      await SyncService.instance.queueDeleteRemoteImage(remoteUrl);
+      final deleted = await SyncService.instance.deleteRemoteImage(remoteUrl);
+      if (deleted) {
+        await SyncService.instance.completeQueuedOperation(
+          'remote_image_delete:$remoteUrl',
+        );
+      }
+    }
   }
 
   Future<void> deleteAllImagesForMeal(int mealId) async {
     final db = await DatabaseService.database;
+    List<String> remoteUrls = const [];
+    if (SyncService.isInitialized) {
+      final existing = await db.query(
+        'meal_images',
+        columns: ['remote_url'],
+        where: 'mealId = ? AND remote_url IS NOT NULL',
+        whereArgs: [mealId],
+      );
+      remoteUrls = existing
+          .map((row) => row['remote_url'] as String?)
+          .whereType<String>()
+          .toList(growable: false);
+    }
+
     await db.delete('meal_images', where: 'mealId = ?', whereArgs: [mealId]);
     await DatabaseService.notifyChange(table: 'meal_images');
+
+    if (SyncService.isInitialized) {
+      for (final remoteUrl in remoteUrls) {
+        await SyncService.instance.queueDeleteRemoteImage(remoteUrl);
+        final deleted = await SyncService.instance.deleteRemoteImage(remoteUrl);
+        if (deleted) {
+          await SyncService.instance.completeQueuedOperation(
+            'remote_image_delete:$remoteUrl',
+          );
+        }
+      }
+    }
   }
 }
 

@@ -1,4 +1,5 @@
 import '../models/sync_operation.dart';
+import 'package:sqflite/sqflite.dart';
 import 'database_service.dart';
 import 'sync_queue.dart';
 
@@ -10,7 +11,11 @@ class SQLiteSyncQueue implements SyncQueue {
   @override
   Future<void> enqueue(SyncOperation operation) async {
     final db = await DatabaseService.database;
-    await db.insert(_tableName, operation.toMap());
+    await db.insert(
+      _tableName,
+      operation.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   @override
